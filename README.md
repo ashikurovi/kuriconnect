@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# হামার কুড়িগ্রাম (Hamar Kurigram) — Complete Digital District Platform
 
-## Getting Started
+> **"হামার জেলা, হামার পরিচয়"**  
+> *Discover Kurigram. Know Your Community.*
 
-First, run the development server:
+[![Next.js](https://img.shields.io/badge/Next.js-16.4.3-black.svg?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg?logo=typescript)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC.svg?logo=tailwind-css)](https://tailwindcss.com)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+**হামার কুড়িগ্রাম (Hamar Kurigram)** হলো কুড়িগ্রাম জেলার বাসিন্দা, দর্শনার্থী, শিক্ষার্থী, গবেষক ও প্রবাসী কুড়িগ্রামবাসীদের জন্য তৈরি একটি আধুনিক, নির্ভরযোগ্য ও সম্পূর্ণ ডিজিটাল জেলা প্ল্যাটফর্ম। এটি একই সাথে স্থানীয় নিরপেক্ষ সংবাদ পোর্টাল, ইন্টারেক্টিভ জেলা মানচিত্র, নাগরিক স্বাস্থ্য ও রক্তদাতা ডিরেক্টরি, ঐতিহ্য নির্দেশিকা, এবং জনসমস্যা ট্র্যাকিং প্ল্যাটফর্ম।
+
+---
+
+## 🏛️ মূল বৈচিত্র্য ও কারিগরি বৈশিষ্ট্যসমূহ
+
+### ১. ইউনিপিক্স-অনুপ্রাণিত মিনিমালিস্ট সম্পাদকীয় ডিজাইন (Unipix Editorial UI)
+- স্নিগ্ধ অফ-হোয়াইট (`#faf8f5`) ও সাদা ব্যাকগ্রাউন্ডের সাথে ডার্ক চারকোল টেক্সট।
+- সংযত গাঢ় ফরেস্ট-গ্রিন (`#14532d`) কালার প্যালেট।
+- প্রিমিয়াম বাংলা টাইপোগ্রাফি (`Hind Siliguri` / `Noto Sans Bengali`)।
+- স্পষ্ট সম্পাদকীয় হায়ারার্কি, ভারসাম্যপূর্ণ হোয়াইটস্পেস ও মার্জিত মাইক্রো-ইন্টারঅ্যাকশন।
+
+### ২. ইন্টারেক্টিভ জেলা মানচিত্র (Interactive District Map)
+- কুড়িগ্রামের **৯টি উপজেলা** (কুড়িগ্রাম সদর, উলিপুর, নাগেশ্বরী, ভুরুঙ্গামারী, ফুলবাড়ী, রাজারহাট, চিলমারী, রৌমারী, চর রাজীবপুর)-এর ভৌগোলিক ভেক্টর বাউন্ডারি।
+- ব্রহ্মপুত্র, ধরলা, তিস্তা ও দুধকুমার নদীর সুনির্দিষ্ট জলপ্রবাহ মানচিত্রায়ন।
+- হেরিটেজ, হাসপাতাল, থানা, শিক্ষা ও বাজারভিত্তিক মাল্টি-লেয়ার ফিল্টারিং।
+- গুগল ম্যাপে সরাসরি ডিরেকশন ও তালিকা (List View) দেখার সুবিধা।
+
+### ৩. ৯টি উপজেলার ডেডিকেটেড পোর্টাল (`/upazila/[slug]`)
+- প্রতিটি উপজেলার প্রশাসনিক সারসংক্ষেপ, আয়তন, জনসংখ্যা, ইউনিয়ন তালিকা।
+- ইতিহাস, মুক্তিযুদ্ধকালীন মুক্তাঞ্চল (যেমন রৌমারী) ও লোকগাথা।
+- স্থানীয় স্বাস্থ্য কমপ্লেক্স, পুলিশ যোগাযোগ, রক্তদাতা ও সর্বশেষ স্থানীয় সংবাদ।
+
+### ৪. ঐতিহ্য ও দর্শনীয় স্থান নির্দেশিকা (`/heritage`)
+- শেখ হাসিনা ধরলা সেতু, ঐতিহাসিক চিলমারী নদীবন্দর, চান্দামারী মুঘল মসজিদ, সোনাহাট ব্রিটিশ রেল সেতু, পাঙ্গা রাজবাড়ী ও নাওডাঙ্গা জমিদার বাড়ি।
+- ইতিহাস, সাংস্কৃতিক গুরুত্ব, যাতায়াত নির্দেশিকা, ম্যাপ স্থানাঙ্ক ও গ্যালারি।
+
+### ৫. হাসপাতাল ও সার্বক্ষণিক স্বাস্থ্যসেবা (`/healthcare`)
+- কুড়িগ্রাম ২৫০ শয্যা জেনারেল হাসপাতাল ও সকল উপজেলা স্বাস্থ্য কমপ্লেক্স।
+- ২৪ ঘণ্টা জরুরি অ্যাম্বুলেন্স তালিকা এবং সরাসরি ১-ক্লিক মোবাইল কলিং (`tel:` সংযোগ)।
+
+### ৬. গোপনীয়তা সুরক্ষিত রক্তদাতা ডিরেক্টরি (`/blood-bank`)
+- রক্তের গ্রুপ (A+, B+, O+, AB+, ইত্যাদি) ও উপজেলাভিত্তিক ফিল্টারিং।
+- ব্যক্তিগত মোবাইল নম্বর জনসাধারণের কাছে উন্মুক্ত না করে মধ্যস্থতাকারী নিরাপদ অনুরোধ ব্যবস্থা।
+- নতুন রক্তদাতা স্বেচ্ছাসেবী নিবন্ধন ফর্ম।
+
+### ৭. থানা, ওসি ও সরকারি যোগাযোগ (`/police-services`)
+- ৯টি থানার ডিউটি অফিসার, অফিসার ইনচার্জ (ওসি), নৌ পুলিশ ও এসপি কন্ট্রোল রুমের যাচাইকৃত নম্বর।
+- ফায়ার সার্ভিস স্টেশন ও ইউএনও অফিসের যোগাযোগ।
+
+### ৮. স্থানীয় জনসমস্যা ট্র্যাকার (`/reports`)
+- নাগরিকরা ভাঙা রাস্তা, নদী ভাঙন, ব্রিজ ধস ও জলাবদ্ধতা ছবিসহ রিপোর্ট করতে পারেন।
+- ৪-ধাপের স্বচ্ছ রেজোল্যুশন টাইমলাইন: `জমা হয়েছে` ➔ `তদন্তাধীন` ➔ `কাজ চলমান` ➔ `সমাধানকৃত`।
+- নাগরিক সমর্থন (Upvoting) ও সমাধান নোট।
+
+### ৯. প্রতারণা ও সাইবার অপরাধ সতর্কতা (`/scam-alerts`)
+- স্থলবন্দরে ভুয়া চাকরি চক্র, চরাঞ্চলে ভুয়া এনজিওর সঞ্চয় ফাঁদ ও ফেসবুক শপিং প্রতারণা প্রতিরোধে জেলা প্রশাসনের গাইডলাইন।
+
+### ১০. সমন্বিত সার্চ ইঞ্জিন (`/search`)
+- সংবাদ, উপজেলা, ঐতিহ্য, হাসপাতাল, থানা ও ডিরেক্টরি একযোগে অনুসন্ধানের গ্লোবাল সার্চ।
+
+### ১১. অ্যাডমিন ও মডারেশন ড্যাশবোর্ড (`/admin`)
+- সংবাদ প্রকাশ ও সম্পাদনা।
+- নাগরিক রিপোর্টের স্ট্যাটাস নিয়ন্ত্রণ ও সমাধান নোট যুক্ত করা।
+- রক্তদাতা যাচাইকরণ ও প্রোফাইল সুরক্ষা।
+- রোল-ভিত্তিক অ্যাক্সেস কন্ট্রোল (Super Admin, Editor, Moderator, Directory Manager, Reporter)।
+- রিয়েল-টাইম অডিট লগ ট্রেইল।
+
+---
+
+## 🚀 ইনস্টলেশন ও লোকাল রান গাইড
+
+### পূর্বশর্ত
+- **Node.js**: v18.0.0 বা তদূর্ধ্ব (পরীক্ষিত v24.12.0)
+- **npm** অথবা **pnpm** / **yarn**
+
+### কমান্ডসমূহ
 ```bash
+# ১. ডিপেন্ডেন্সি ইনস্টল করুন
+npm install
+
+# ২. ডেভেলপমেন্ট সার্ভার চালু করুন
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ব্রাউজারে খুলুন: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### প্রোডাকশন বিল্ড
+```bash
+npm run build
+npm run start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🗄️ ডেটাবেজ আর্কিটেকচার (PostgreSQL & TypeORM)
 
-To learn more about Next.js, take a look at the following resources:
+প্রজেক্টের রুট ডিরেক্টরির `database/` ফোল্ডারে নরমালাইজড রিলেশনাল স্কিমা এবং সিড স্ক্রিপ্ট সংরক্ষিত রয়েছে:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [`database/schema.sql`](file:///Users/macbookair/Desktop/hamer-kurigram/database/schema.sql): PostgreSQL ডিডিএল স্ক্রিপ্ট (UUID, PostGIS, Foreign Keys, Indexes, Constraints)।
+- [`database/seeds.sql`](file:///Users/macbookair/Desktop/hamer-kurigram/database/seeds.sql): কুড়িগ্রামের ৯টি উপজেলা, হাসপাতাল ও থানার প্রাথমিক ভেরিফায়েড ডেটাসেট।
+- [`database/typeorm-entities.ts`](file:///Users/macbookair/Desktop/hamer-kurigram/database/typeorm-entities.ts): টাইপস্ক্রিপ্ট টাইপওআরএম ক্লাস সংজ্ঞায়ন।
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🌐 REST API এন্ডপয়েন্টস
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| মেথড | এন্ডপয়েন্ট | বিবরণ |
+| :--- | :--- | :--- |
+| `GET` | `/api/news` | প্রকাশিত সংবাদ তালিকা (ক্যাটাগরি ও উপজেলা ফিল্টারসহ) |
+| `POST`| `/api/news` | নতুন সংবাদ প্রতিবেদন দাখিল |
+| `GET` | `/api/upazilas` | ৯টি উপজেলার বিস্তারিত ভৌগোলিক ও প্রশাসনিক উপাত্ত |
+| `GET` | `/api/reports` | নাগরিক সমস্যার তালিকা ও অগ্রগতি ট্র্যাক |
+| `POST`| `/api/reports` | নতুন স্থানীয় সমস্যা সাবমিশন |
+| `GET` | `/api/blood-donors`| রক্তদাতাদের গ্রুপ ও উপজেলাভিত্তিক সুরক্ষিত তালিকা |
+| `POST`| `/api/blood-donors`| স্বেচ্ছাসেবী রক্তদাতা নিবন্ধন |
+| `GET` | `/api/search?q={query}`| সমন্বিত ক্রস-এনটিটি জেলা সার্চ |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 📄 লাইসেন্স ও সম্পাদকীয় প্রতিশ্রুতি
+হামার কুড়িগ্রাম প্ল্যাটফর্মটি কুড়িগ্রাম জেলাবাসীর তথ্য অধিকার ও সেবার মানোন্নয়নে উন্মুক্ত।
+*সম্পাদকীয় ও সংশোধনী যোগাযোগ:* `news@hamarkurigram.org`
