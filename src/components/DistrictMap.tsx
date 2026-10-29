@@ -166,10 +166,10 @@ export default function DistrictMap({ initialUpazilaId = 'kurigram-sadar', compa
         {/* View Mode Toggle & Layer Selector */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Layer Pills */}
-          <div className="hidden sm:flex items-center bg-white border border-slate-200 rounded-lg p-0.5 text-xs shadow-2xs">
+          <div className="flex items-center overflow-x-auto max-w-full bg-white border border-slate-200 rounded-lg p-0.5 text-xs shadow-2xs no-scrollbar">
             <button
               onClick={() => setActiveLayer('all')}
-              className={`px-2.5 py-1 rounded-md transition-all ${activeLayer === 'all' ? 'bg-emerald-600 text-white font-medium shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-2.5 py-1 rounded-md transition-all whitespace-nowrap ${activeLayer === 'all' ? 'bg-emerald-600 text-white font-medium shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
               সকল লেয়ার

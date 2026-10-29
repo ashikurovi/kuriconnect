@@ -8,16 +8,10 @@ export default function TopBar() {
   return (
     <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
-        {/* Left: System Status & Weather Telemetry */}
-        <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>কুড়িগ্রাম ডিজিটাল হাব লাইভ</span>
-          </div>
-          <div className="hidden sm:inline-flex items-center gap-1.5 text-slate-400 border-l border-slate-800 pl-3">
-            <CloudSun className="w-3.5 h-3.5 text-amber-400" />
-            <span>কুড়িগ্রাম: ২৮° সে. • মেঘমুক্ত আকাশ</span>
-          </div>
+        {/* Left: Weather Telemetry */}
+        <div className="flex items-center gap-2 text-slate-300">
+          <CloudSun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="text-[11px] sm:text-xs">কুড়িগ্রাম: ২৮° সে. • মেঘমুক্ত আকাশ</span>
         </div>
 
         {/* Right: Quick Emergency Services */}

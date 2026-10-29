@@ -11,7 +11,8 @@ import {
   POLICE_CONTACTS,
   COMMUNITY_REPORTS,
   SCAM_ALERTS,
-  EMERGENCY_HELPLINES
+  EMERGENCY_HELPLINES,
+  LOST_NOTICES
 } from '@/data/kurigramData';
 import DistrictMap from '@/components/DistrictMap';
 import ReportModal from '@/components/ReportModal';
@@ -39,7 +40,8 @@ import {
   PlusCircle,
   HelpCircle,
   Building,
-  Heart
+  Heart,
+  FileQuestion
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -90,24 +92,24 @@ export default function HomePage() {
             </p> */}
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 max-w-sm sm:max-w-none mx-auto w-full">
               <a
                 href="#map"
-                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-emerald-700/20 active:scale-95"
+                className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-emerald-700/20 active:scale-95"
               >
                 <Map className="w-4 h-4" />
                 <span>ইন্টারেক্টিভ মানচিত্র খুলুন</span>
               </a>
               <Link
                 href="/blood-bank"
-                className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-rose-700/20 active:scale-95"
+                className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-rose-700/20 active:scale-95"
               >
                 <Heart className="w-4 h-4" />
                 <span>জরুরি রক্তদাতা খুঁজুন</span>
               </Link>
               <button
                 onClick={() => setReportModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-2xs transition-all active:scale-95"
+                className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-2xs transition-all active:scale-95"
               >
                 <PlusCircle className="w-4 h-4 text-emerald-600" />
                 <span>নাগরিক সমস্যা জানান</span>
@@ -116,70 +118,70 @@ export default function HomePage() {
           </div>
 
           {/* 🎛️ 5 Quick Service Launchers (Digital Hub Tiles) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-8 sm:mt-10">
             <a
               href="#map"
-              className="group bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-emerald-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
+              className="group bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-emerald-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
             >
-              <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all">
                 <Compass className="w-5 h-5" />
               </div>
               <span className="font-heading font-bold text-xs sm:text-sm text-slate-800 group-hover:text-emerald-700">
                 জেলা মানচিত্র
               </span>
-              <span className="text-[11px] text-slate-400 mt-0.5">৯টি উপজেলা GIS</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">৯টি উপজেলা GIS</span>
             </a>
 
             <Link
               href="/blood-bank"
-              className="group bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-rose-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
+              className="group bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-rose-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
             >
-              <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:bg-rose-600 group-hover:text-white transition-all">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-rose-600 group-hover:text-white transition-all">
                 <HeartHandshake className="w-5 h-5" />
               </div>
               <span className="font-heading font-bold text-xs sm:text-sm text-slate-800 group-hover:text-rose-700">
                 ব্লাড ব্যাংক
               </span>
-              <span className="text-[11px] text-slate-400 mt-0.5">স্বেচ্ছাসেবী রক্তদাতা</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">স্বেচ্ছাসেবী রক্তদাতা</span>
             </Link>
 
             <Link
               href="/scam-alerts"
-              className="group bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-amber-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
+              className="group bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-amber-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
             >
-              <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white transition-all">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white transition-all">
                 <ShieldAlert className="w-5 h-5" />
               </div>
               <span className="font-heading font-bold text-xs sm:text-sm text-slate-800 group-hover:text-amber-700">
                 প্রতারণা সতর্কতা
               </span>
-              <span className="text-[11px] text-slate-400 mt-0.5">সচেতনতা ও পরামর্শ</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">সচেতনতা ও পরামর্শ</span>
             </Link>
 
             <Link
               href="/reports"
-              className="group bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-amber-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
+              className="group bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-amber-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
             >
-              <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white transition-all">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white transition-all">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <span className="font-heading font-bold text-xs sm:text-sm text-slate-800 group-hover:text-amber-700">
                 সমস্যা ট্র্যাকার
               </span>
-              <span className="text-[11px] text-slate-400 mt-0.5">রাস্তা ও বাঁধ রিপোর্ট</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">রাস্তা ও বাঁধ রিপোর্ট</span>
             </Link>
 
             <Link
               href="/heritage"
-              className="group bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-purple-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
+              className="col-span-2 sm:col-span-1 group bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-purple-500/50 hover:-translate-y-0.5 transition-all flex flex-col items-center text-center"
             >
-              <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white transition-all">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white transition-all">
                 <Landmark className="w-5 h-5" />
               </div>
               <span className="font-heading font-bold text-xs sm:text-sm text-slate-800 group-hover:text-purple-700">
                 ঐতিহ্য ও পর্যটন
               </span>
-              <span className="text-[11px] text-slate-400 mt-0.5">দর্শনীয় স্থানসমূহ</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">দর্শনীয় স্থানসমূহ</span>
             </Link>
           </div>
 
@@ -451,6 +453,122 @@ export default function HomePage() {
             <span className="text-slate-500">সকল নাগরিক রিপোর্ট সার্বক্ষণিক মনিটরিং করা হয়</span>
             <Link href="/reports" className="text-emerald-700 font-semibold hover:underline">
               সকল নাগরিক রিপোর্ট ও রেজোল্যুশন টাইমলাইন →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 🔍 SECTION: Recent Lost and Found Notices */}
+      <section className="max-w-7xl mx-auto px-4 font-bengali">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 mb-5 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">
+                <FileQuestion className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-heading font-bold text-lg text-slate-900">সাম্প্রতিক হারানো ও প্রাপ্তি বিজ্ঞপ্তি</h3>
+                  <span className="hidden sm:inline-flex text-[10px] bg-rose-100 text-rose-800 font-semibold px-2 py-0.5 rounded-full border border-rose-200">
+                    নাগরিক সহায়তা
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  জাতীয় পরিচয়পত্র, সনদপত্র, নিখোঁজ ব্যক্তি বা হারিয়ে যাওয়া ও কুড়িয়ে পাওয়া জিনিসের হালনাগাদ তথ্য
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <Link
+                href="/lost-and-found"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-xs transition-all active:scale-95 flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>+ বিজ্ঞপ্তি দিন</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Cards Grid: 3 most recent notices */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {LOST_NOTICES.slice(0, 3).map((notice) => {
+              const isLost = notice.type === 'lost';
+              return (
+                <div
+                  key={notice.id}
+                  className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-4 hover:bg-white hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between group"
+                >
+                  <div className="space-y-2.5">
+                    {/* Top status badges */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                          isLost
+                            ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}
+                      >
+                        {isLost ? '● হারানো' : '✓ কুড়িয়ে পাওয়া'}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {notice.date}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h4 className="font-heading font-bold text-sm text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
+                      {notice.titleBn}
+                    </h4>
+
+                    {/* Description snippet */}
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      {notice.descriptionBn}
+                    </p>
+
+                    {/* Upazila & Location Tag */}
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 pt-1">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate">{notice.upazilaNameBn} • {notice.locationDetailsBn}</span>
+                    </div>
+
+                    {/* GD number or reward */}
+                    {notice.gdNumber && (
+                      <div className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium border border-slate-200/60 inline-block">
+                        🛡️ {notice.gdNumber}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contact footer with Direct Call */}
+                  <div className="pt-3 mt-3 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[11px] text-slate-400 block truncate">যোগাযোগ:</span>
+                      <span className="text-xs font-semibold text-slate-800 block truncate">{notice.contactName}</span>
+                    </div>
+                    <a
+                      href={`tel:${notice.contactPhone}`}
+                      className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-colors shrink-0"
+                    >
+                      <PhoneCall className="w-3 h-3" />
+                      <span>কল করুন</span>
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Section Footer */}
+          <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs gap-2">
+            <span className="text-slate-500">জাতীয় পরিচয়পত্র, সনদ বা ব্যক্তি নিখোঁজের ক্ষেত্রে দ্রুত নিকটস্থ থানায় জিডি করুন</span>
+            <Link
+              href="/lost-and-found"
+              className="text-emerald-700 font-semibold hover:underline flex items-center gap-1 self-start sm:self-auto"
+            >
+              <span>সকল হারানো ও প্রাপ্তি বিজ্ঞপ্তি ড্যাশবোর্ড ({LOST_NOTICES.length}+)</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>

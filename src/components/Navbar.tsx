@@ -183,67 +183,68 @@ export default function Navbar() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-[#e7e3db] bg-white px-4 py-4 space-y-4 shadow-xl">
+        <div className="lg:hidden border-t border-slate-200/90 bg-white/98 backdrop-blur-md px-4 py-4 space-y-4 shadow-xl animate-in fade-in slide-in-from-top-2">
           {/* Mobile Search */}
           <form onSubmit={handleSearchSubmit} className="relative">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="সার্চ করুন..."
-              className="w-full bg-[#f8f6f0] border border-[#d2ccc1] rounded-md py-2 pl-9 pr-3 text-sm text-[#1a1d1f]"
+              placeholder="উপজেলা, রক্তদাতা বা নাগরিক তথ্য খুঁজুন..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all"
             />
-            <Search className="w-4 h-4 text-[#81878d] absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            {searchQuery && (
+              <button
+                type="submit"
+                className="absolute right-2 top-2 bg-emerald-600 text-white text-[10px] font-semibold px-2 py-1 rounded-md"
+              >
+                খুঁজুন
+              </button>
+            )}
           </form>
 
-          {/* Links */}
+          {/* Links Grid */}
           <div className="grid grid-cols-2 gap-2 text-sm">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 rounded bg-[#faf8f5] hover:bg-[#eef6f0] text-[#1a1d1f] hover:text-[#14532d] font-medium text-xs transition-colors"
-              >
-                <link.icon className="w-4 h-4 text-[#14532d]" />
-                <span>{link.nameBn}</span>
-              </Link>
-            ))}
-          </div>
-
-          {/* 9 Upazilas Quick List — HIDDEN as requested */}
-          {/*
-          <div className="pt-2 border-t border-gray-100">
-            <span className="text-xs font-semibold text-gray-500 block mb-2">৯টি উপজেলা:</span>
-            <div className="grid grid-cols-3 gap-1.5">
-              {UPAZILAS.map((upazila) => (
+            {navLinks.map((link, idx) => {
+              const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+              const isLast = idx === navLinks.length - 1 && navLinks.length % 2 !== 0;
+              return (
                 <Link
-                  key={upazila.id}
-                  href={`/upazila/${upazila.slug}`}
+                  key={link.href}
+                  href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center py-1.5 px-1 bg-gray-50 hover:bg-green-50 rounded text-xs text-gray-800 hover:text-green-800 transition-colors"
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-medium text-xs transition-all border ${
+                    isLast ? 'col-span-2' : ''
+                  } ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold shadow-2xs'
+                      : 'bg-slate-50/80 hover:bg-emerald-50/80 text-slate-700 hover:text-emerald-700 border-slate-200/70'
+                  }`}
                 >
-                  {upazila.nameBn}
+                  <link.icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-600' : 'text-slate-500'}`} />
+                  <span className="truncate">{link.nameBn}</span>
                 </Link>
-              ))}
-            </div>
+              );
+            })}
           </div>
-          */}
 
-          <div className="pt-2 flex justify-between items-center text-xs text-gray-500 border-t border-gray-100">
+          <div className="pt-3 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
             <Link
               href="/reports#submit"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-[#14532d] font-semibold"
+              className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200"
             >
-              + নতুন তথ্য/সমস্যা জমা দিন
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ সমস্যা রিপোর্ট করুন</span>
             </Link>
             <Link
               href="/admin"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 font-medium"
             >
-              অ্যাডমিন লগইন
+              <Lock className="w-3 h-3" />
+              <span>অ্যাডমিন পোর্টাল</span>
             </Link>
           </div>
         </div>
