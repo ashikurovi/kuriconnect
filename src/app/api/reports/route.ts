@@ -1,58 +1,84 @@
 import { NextResponse } from 'next/server';
-import { COMMUNITY_REPORTS, UPAZILAS } from '@/data/kurigramData';
+import { serverStore } from '@/lib/serverStore';
+import type { CommunityReport, UpazilaId } from '@/types';
+
+type NewReportInput = {
+  userId?: string;
+  titleBn: string;
+  descriptionBn: string;
+  locationDetailsBn: string;
+  category?: CommunityReport['category'];
+  upazilaId?: UpazilaId;
+  reporterName?: string;
+  reporterPhone?: string;
+  priority?: CommunityReport['priority'];
+  images?: string[];
+};
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status');
   const upazilaId = searchParams.get('upazilaId');
+  const category = searchParams.get('category');
+  const userId = searchParams.get('userId');
+  const search = searchParams.get('search');
 
-  let list = [...COMMUNITY_REPORTS];
-
-  if (status && status !== 'all') {
-    list = list.filter((r) => r.status === status);
-  }
-
-  if (upazilaId && upazilaId !== 'all') {
-    list = list.filter((r) => r.upazilaId === upazilaId);
-  }
-
-  return NextResponse.json({
-    success: true,
-    count: list.length,
-    data: list
+  const list = await serverStore.getReports({
+    status: status ?? undefined,
+    upazilaId: upazilaId ?? undefined,
+    category: category ?? undefined,
+    userId: userId ?? undefined,
+    search: search ?? undefined,
   });
+
+  return NextResponse.json({ success: true, count: list.length, data: list });
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body: NewReportInput = await request.json();
     if (!body.titleBn || !body.descriptionBn || !body.locationDetailsBn) {
       return NextResponse.json(
-        { success: false, message: 'প্রয়োজনীয় তথ্য অসম্পূর্ণ।' },
-        { status: 400 }
+        { success: false, message: 'প্রয়োজনীয় ফিল্ডগুলো প্রদান করুন' },
+        { status: 400 },
       );
     }
-
-    const upazila = UPAZILAS.find((u) => u.id === body.upazilaId);
-
-    const newReport = {
-      id: `rep-${Date.now()}`,
+    const newReport = await serverStore.addReport({
+      userId: body.userId || undefined,
       titleBn: body.titleBn,
       descriptionBn: body.descriptionBn,
-      category: body.category || 'damaged-road',
-      categoryLabelBn: 'নাগরিক সেবা ও অবকাঠামো',
-      upazilaId: body.upazilaId || 'kurigram-sadar',
-      upazilaNameBn: upazila ? upazila.nameBn : 'কুড়িগ্রাম সদর',
       locationDetailsBn: body.locationDetailsBn,
-      status: 'submitted',
-      submittedAt: '৩০ অক্টোবর ২০২৬',
-      updatedAt: '৩০ অক্টোবর ২০২৬',
-      reporterNameMasked: body.reporterName ? `${body.reporterName.charAt(0)}... (নাগরিক)` : 'নাম প্রকাশে অনিচ্ছুক',
-      upvotesCount: 1,
-      images: []
-    };
-
+      category: body.category as any,
+      upazilaId: body.upazilaId,
+      reporterName: body.reporterName,
+      reporterPhone: body.reporterPhone,
+      priority: body.priority as any,
+      images: body.images || [],
+    });
     return NextResponse.json({ success: true, data: newReport }, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const { id, ...updates } = await request.json();
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'ID দরকার' }, { status: 400 });
+    }
+    const updated = await serverStore.updateReport(id, updates as Partial<CommunityReport>);
+    return NextResponse.json({ success: true, data: updated });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { id } = await request.json();
+    await serverStore.deleteReport(id);
+    return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

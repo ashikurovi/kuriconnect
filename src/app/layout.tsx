@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import TopBar from '@/components/TopBar';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import SiteLayoutWrapper from '@/components/SiteLayoutWrapper';
 
 export const metadata: Metadata = {
   title: 'KuriConnect — কুড়িগ্রাম জেলার ডিজিটাল প্ল্যাটফর্ম',
@@ -30,11 +28,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="bn" className="scroll-smooth">
-      <body className="min-h-screen flex flex-col bg-[#f8fafc] text-slate-900 font-bengali selection:bg-emerald-500 selection:text-white antialiased">
-        <TopBar />
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+      <body className="min-h-screen bg-[#f8fafc] text-slate-900 font-bengali selection:bg-emerald-500 selection:text-white antialiased">
+        <SiteLayoutWrapper>{children}</SiteLayoutWrapper>
       </body>
     </html>
   );

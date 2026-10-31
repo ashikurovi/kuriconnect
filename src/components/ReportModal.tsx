@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Send, AlertCircle, CheckCircle, Upload } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Send, AlertCircle, CheckCircle, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { UPAZILAS } from '@/data/kurigramData';
 import { UpazilaId } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ReportModalProps {
 }
 
 export default function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalProps) {
+  const { user } = useAuth();
   const [titleBn, setTitleBn] = useState('');
   const [category, setCategory] = useState('damaged-road');
   const [upazilaId, setUpazilaId] = useState<UpazilaId>('kurigram-sadar');
@@ -20,12 +22,47 @@ export default function ReportModal({ isOpen, onClose, onSubmitSuccess }: Report
   const [reporterName, setReporterName] = useState('');
   const [reporterPhone, setReporterPhone] = useState('');
   const [consent, setConsent] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle Multi-image upload via Base64 (supports up to 4 images)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const remainingSlots = 4 - images.length;
+    const fileList = Array.from(files).slice(0, remainingSlots);
+
+    fileList.forEach((file) => {
+      // Limit file size to 2MB per image
+      if (file.size > 2 * 1024 * 1024) {
+        alert(`${file.name} ফাইলটি ২MB-এর বেশি। অনুগ্রহ করে ছোট আকারের ছবি নির্বাচন করুন।`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImages((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titleBn || !descriptionBn || !locationDetailsBn || !consent) {
       alert('অনুগ্রহ করে সকল প্রয়োজনীয় তথ্য প্রদান করুন এবং সম্মতি বাক্সে টিক দিন।');
@@ -33,44 +70,50 @@ export default function ReportModal({ isOpen, onClose, onSubmitSuccess }: Report
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const upazila = UPAZILAS.find((u) => u.id === upazilaId);
-      const newReport = {
-        id: `rep-${Date.now()}`,
-        titleBn,
-        descriptionBn,
-        category,
-        categoryLabelBn:
-          category === 'damaged-road'
-            ? 'ক্ষতিগ্রস্ত সড়ক'
-            : category === 'river-erosion'
-            ? 'নদী ভাঙন'
-            : category === 'flood-embankment'
-            ? 'বন্যা নিয়ন্ত্রণ বাঁধ'
-            : category === 'school-hazard'
-            ? 'স্কুল ঝুঁকি'
-            : 'পৌর ও নাগরিক সেবা',
-        upazilaId,
-        upazilaNameBn: upazila ? upazila.nameBn : 'কুড়িগ্রাম সদর',
-        locationDetailsBn,
-        status: 'submitted',
-        submittedAt: 'আজ, ৩০ অক্টোবর ২০২৬',
-        updatedAt: '৩০ অক্টোবর ২০২৬',
-        reporterNameMasked: reporterName ? `${reporterName.charAt(0)}... (নাগরিক)` : 'নাম প্রকাশে অনিচ্ছুক',
-        upvotesCount: 1,
-        images: []
-      };
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          titleBn,
+          descriptionBn,
+          locationDetailsBn,
+          category,
+          upazilaId,
+          reporterName,
+          reporterPhone,
+          images
+        })
+      });
 
-      if (onSubmitSuccess) {
-        onSubmitSuccess(newReport);
+      const data = await res.json();
+      if (data.success) {
+        if (onSubmitSuccess) {
+          onSubmitSuccess(data.data);
+        }
+        setIsSubmitting(false);
+        setSuccessMessage(true);
+        setTimeout(() => {
+          setSuccessMessage(false);
+          // reset form
+          setTitleBn('');
+          setDescriptionBn('');
+          setLocationDetailsBn('');
+          setReporterName('');
+          setReporterPhone('');
+          setImages([]);
+          setConsent(false);
+          onClose();
+        }, 2200);
+      } else {
+        alert(data.message || 'রিপোর্ট জমা দিতে সমস্যা হয়েছে');
+        setIsSubmitting(false);
       }
+    } catch {
+      alert('সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি');
       setIsSubmitting(false);
-      setSuccessMessage(true);
-      setTimeout(() => {
-        setSuccessMessage(false);
-        onClose();
-      }, 2500);
-    }, 800);
+    }
   };
 
   return (
@@ -177,6 +220,55 @@ export default function ReportModal({ isOpen, onClose, onSubmitSuccess }: Report
                 placeholder="কবে থেকে সমস্যাটি তৈরি হয়েছে? কতজন মানুষ ক্ষতিগ্রস্ত হচ্ছে? প্রশাসনকে আগে জানানো হয়েছিল কিনা?"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 transition-all"
               ></textarea>
+            </div>
+
+            {/* 📸 Multi-image Upload Section (Optional) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>সমস্যার ছবি সংযুক্ত করুন (ঐচ্ছিক, সর্বোচ্চ ৪টি)</span>
+                </label>
+                <span className="text-[11px] text-slate-400">{images.length}/৪টি ছবি</span>
+              </div>
+
+              {/* Image Previews */}
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative group rounded-xl overflow-hidden aspect-video border border-slate-200 bg-slate-100">
+                    <img src={img} alt={`সংযুক্ত ছবি ${idx + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-rose-600 text-white p-1 rounded-full opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="ছবি মুছুন"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+
+                {images.length < 4 && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/40 rounded-xl aspect-video flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-emerald-700 transition-all cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4 text-emerald-600" />
+                    <span className="text-[10px] font-medium">+ ছবি যোগ</span>
+                  </button>
+                )}
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <p className="text-[10px] text-slate-400">জেপিজি বা পিএনজি ফরম্যাটের ছবি আপলোড করুন (প্রতিটি সর্বোচ্চ ২MB)।</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">

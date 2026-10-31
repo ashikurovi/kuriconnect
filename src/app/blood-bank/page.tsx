@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BLOOD_DONORS, UPAZILAS } from '@/data/kurigramData';
+import { UPAZILAS } from '@/data/kurigramData';
 import DonorModal from '@/components/DonorModal';
+import type { BloodDonor, BloodRequest } from '@/types';
 import {
   Heart,
   Search,
@@ -14,8 +15,15 @@ import {
   CheckCircle,
   AlertCircle,
   PlusCircle,
-  Send
+  Send,
+  MapPin,
+  Clock
 } from 'lucide-react';
+
+const toBengaliNumber = (num: number | string) => {
+  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(num).replace(/\d/g, (d) => bnDigits[Number(d)]);
+};
 
 export default function BloodBankPage() {
   const [selectedGroup, setSelectedGroup] = useState('all');
@@ -23,8 +31,39 @@ export default function BloodBankPage() {
   const [donorModalOpen, setDonorModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'register' | 'request'>('register');
   const [requestSentNotice, setRequestSentNotice] = useState<string | null>(null);
+  const [donors, setDonors] = useState<BloodDonor[]>([]);
+  const [bloodRequests, setBloodRequests] = useState<BloodRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredDonors = BLOOD_DONORS.filter((donor) => {
+  const fetchDonors = () => {
+    fetch('/api/blood-donors')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setDonors(data.data);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  const fetchBloodRequests = () => {
+    fetch('/api/blood-requests')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setBloodRequests(data.data);
+        }
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchDonors();
+    fetchBloodRequests();
+  }, []);
+
+  const filteredDonors = donors.filter((donor) => {
     const matchesGroup = selectedGroup === 'all' || donor.bloodGroup === selectedGroup;
     const matchesUpazila = selectedUpazila === 'all' || donor.upazilaId === selectedUpazila;
     return matchesGroup && matchesUpazila;
@@ -50,9 +89,14 @@ export default function BloodBankPage() {
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#1a1d1f] tracking-tight">
-              কুড়িগ্রাম জেলা রক্তদাতা ডিরেক্টরি ও জরুরি রক্তের সন্ধান
-            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#1a1d1f] tracking-tight">
+                কুড়িগ্রাম জেলা রক্তদাতা ডিরেক্টরি
+              </h1>
+              <span className="bg-red-100 text-red-800 text-xs font-bold px-2.5 py-1 rounded-full border border-red-200">
+                মোট {toBengaliNumber(filteredDonors.length)} জন রক্তদাতা
+              </span>
+            </div>
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
               স্বেচ্ছাসেবী রক্তদাতাদের গোপনীয়তা সুরক্ষিত রেখে জরুরি প্রয়োজনে রক্ত মেলানোর উন্মুক্ত নাগরিক উদ্যোগ।
             </p>
@@ -103,6 +147,47 @@ export default function BloodBankPage() {
         </div>
       )}
 
+      {/* 🚨 Emergency Blood Requests Link Banner */}
+      <div className="bg-gradient-to-r from-rose-50 via-red-50 to-amber-50/50 border border-rose-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Heart className="w-6 h-6 fill-current animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                জরুরি রক্তের তাৎক্ষণিক আবেদনসমূহ
+              </h2>
+              <span className="bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                {bloodRequests.filter(r => r.status !== 'cancelled').length}টি সক্রিয় আবেদন
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 mt-0.5">
+              কুড়িগ্রামের হাসপাতালে ভর্তি রোগীদের জন্য রক্তের জরুরি আবেদন দেখতে ও সরাসরি যোগাযোগ করতে পৃথক পেজ দেখুন।
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => {
+              setModalMode('request');
+              setDonorModalOpen(true);
+            }}
+            className="bg-white border border-rose-600 text-rose-700 hover:bg-rose-50 px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-colors"
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>নতুন আবেদন</span>
+          </button>
+          <Link
+            href="/blood-requests"
+            className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors"
+          >
+            <span>আবেদন পেজ খুলুন →</span>
+          </Link>
+        </div>
+      </div>
+
       {/* Filter Bar */}
       <div className="bg-white border border-[#e7e3db] rounded-lg p-4 shadow-2xs space-y-3">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -143,8 +228,14 @@ export default function BloodBankPage() {
       </div>
 
       {/* Donors List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredDonors.map((donor) => (
+      {filteredDonors.length === 0 ? (
+        <div className="bg-white border border-[#e7e3db] rounded-xl p-10 text-center text-xs text-gray-500 space-y-2">
+          <p className="font-semibold text-sm text-gray-700">কোনো নিবন্ধিত রক্তদাতা পাওয়া যায়নি</p>
+          <p>আপনার রক্তের গ্রুপের কোনো দাতা না থাকলে আপনি নিজেই রক্তদাতা হিসেবে নিবন্ধন করতে পারেন।</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredDonors.map((donor) => (
           <div
             key={donor.id}
             className="bg-white border border-[#e7e3db] rounded-lg p-4 shadow-2xs hover:border-red-400 transition-all flex flex-col justify-between"
@@ -181,24 +272,44 @@ export default function BloodBankPage() {
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              <button
-                onClick={() => handleRequestClick(donor.donorNameBn)}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 py-1.5 rounded text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>জরুরি রক্তের অনুরোধ পাঠান</span>
-              </button>
+            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+              {donor.availabilityStatus === 'available' ? (
+                <>
+                  <a
+                    href={`tel:${donor.phone || ''}`}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 rounded text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                  >
+                    <PhoneCall className="w-3.5 h-3.5" />
+                    <span>সরাসরি কল দিন</span>
+                  </a>
+                  <button
+                    onClick={() => handleRequestClick(donor.donorNameBn)}
+                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded text-xs font-bold transition-colors"
+                    title="জরুরি অনুরোধ পাঠান"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              ) : (
+                <div className="w-full bg-slate-100 text-slate-500 py-1.5 rounded text-xs font-medium text-center border border-slate-200">
+                  রক্তদানে প্রস্তুত নন
+                </div>
+              )}
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Modal */}
       <DonorModal
         isOpen={donorModalOpen}
         onClose={() => setDonorModalOpen(false)}
         mode={modalMode}
+        onSuccess={() => {
+          fetchDonors();
+          fetchBloodRequests();
+        }}
       />
     </div>
   );

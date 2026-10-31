@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  UPAZILAS,
-  LOST_NOTICES
+  UPAZILAS
 } from '@/data/kurigramData';
 import { LostNotice, UpazilaId } from '@/types';
+import LostNoticeModal from '@/components/LostNoticeModal';
 import {
   Search,
   Filter,
@@ -29,13 +29,31 @@ import {
 } from 'lucide-react';
 
 export default function LostAndFoundPage() {
-  const [notices, setNotices] = useState<LostNotice[]>(LOST_NOTICES);
+  const [notices, setNotices] = useState<LostNotice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'lost' | 'found'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedUpazila, setSelectedUpazila] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const fetchNotices = () => {
+    setLoading(true);
+    fetch('/api/lost-notices')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setNotices(data.data);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchNotices();
+  }, []);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -308,7 +326,7 @@ export default function LostAndFoundPage() {
                     </span>
 
                     <span className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md font-medium">
-                      {notice.categoryLabelBn}
+                      {categoryLabels[notice.category] || notice.categoryLabelBn || 'অন্যান্য'}
                     </span>
                   </div>
 
@@ -424,228 +442,11 @@ export default function LostAndFoundPage() {
       </section>
 
       {/* 📝 New Notice Submission Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <PlusCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-bold text-lg text-slate-900">
-                    নতুন হারানো বা প্রাপ্তি বিজ্ঞপ্তি
-                  </h3>
-                  <p className="text-xs text-slate-500">সকল তথ্য নির্ভুলভাবে প্রদান করুন</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {submitSuccess ? (
-              <div className="py-12 text-center space-y-3">
-                <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto animate-bounce" />
-                <h4 className="font-heading font-bold text-lg text-slate-900">বিজ্ঞপ্তি সফলভাবে প্রকাশিত হয়েছে!</h4>
-                <p className="text-xs text-slate-500">বিজ্ঞপ্তিটি তালিকায় যুক্ত করা হয়েছে।</p>
-              </div>
-            ) : (
-              <form onSubmit={handleFormSubmit} className="space-y-4 text-xs">
-                {/* Notice Type Radio */}
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1.5">বিজ্ঞপ্তির ধরন *</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <label
-                      className={`p-3 rounded-xl border flex items-center justify-center gap-2 cursor-pointer font-bold transition-all ${
-                        formData.type === 'lost'
-                          ? 'bg-rose-50 border-rose-300 text-rose-800'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="type"
-                        value="lost"
-                        checked={formData.type === 'lost'}
-                        onChange={() => setFormData({ ...formData, type: 'lost' })}
-                        className="hidden"
-                      />
-                      <span>🚨 হারানো বিজ্ঞপ্তি</span>
-                    </label>
-
-                    <label
-                      className={`p-3 rounded-xl border flex items-center justify-center gap-2 cursor-pointer font-bold transition-all ${
-                        formData.type === 'found'
-                          ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="type"
-                        value="found"
-                        checked={formData.type === 'found'}
-                        onChange={() => setFormData({ ...formData, type: 'found' })}
-                        className="hidden"
-                      />
-                      <span>🟢 কুড়িয়ে পাওয়া</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Category & Upazila */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">ক্যাটাগরি *</label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                    >
-                      <option value="document">আইডি কার্ড ও সনদপত্র</option>
-                      <option value="person">নিখোঁজ ব্যক্তি</option>
-                      <option value="vehicle">যানবাহন বা বাইক</option>
-                      <option value="valuable">মোবাইল বা মূল্যবান সামগ্রী</option>
-                      <option value="other">অন্যান্য</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">উপজেলা *</label>
-                    <select
-                      value={formData.upazilaId}
-                      onChange={(e) => setFormData({ ...formData, upazilaId: e.target.value as UpazilaId })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                    >
-                      {UPAZILAS.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.nameBn}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">বিজ্ঞপ্তির শিরোনাম *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.titleBn}
-                    onChange={(e) => setFormData({ ...formData, titleBn: e.target.value })}
-                    placeholder="যেমন: কুড়িগ্রাম কলেজ মোড়ে জাতীয় পরিচয়পত্র হারানো"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">বিস্তারিত বিবরণ *</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={formData.descriptionBn}
-                    onChange={(e) => setFormData({ ...formData, descriptionBn: e.target.value })}
-                    placeholder="রং, বিশেষ কোনো চিহ্ন বা বিস্তারিত বিবরণ লিখুন..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Location & Date */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">স্থান / এলাকা *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.locationDetailsBn}
-                      onChange={(e) => setFormData({ ...formData, locationDetailsBn: e.target.value })}
-                      placeholder="যেমন: ত্রিমোহনী বাজার"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">ঘটনার তারিখ</label>
-                    <input
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                {/* GD Number & Reward */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">থানা জিডি নং (যদি থাকে)</label>
-                    <input
-                      type="text"
-                      value={formData.gdNumber}
-                      onChange={(e) => setFormData({ ...formData, gdNumber: e.target.value })}
-                      placeholder="যেমন: সদর থানা জিডি নং-৭৮৪/২৬"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">পুরস্কার ঘোষণা (ঐচ্ছিক)</label>
-                    <input
-                      type="text"
-                      value={formData.rewardBn}
-                      onChange={(e) => setFormData({ ...formData, rewardBn: e.target.value })}
-                      placeholder="যেমন: নগদ ২,০০০ টাকা পুরস্কৃত"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Contact Info */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">যোগাযোগকারীর নাম *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.contactName}
-                      onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                      placeholder="আপনার নাম"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-slate-700 block mb-1">মোবাইল নম্বর *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={formData.contactPhone}
-                      onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                      placeholder="০১৭xxxxxxxx"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-emerald-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-3">
-                  <button
-                    type="submit"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs sm:text-sm shadow-sm transition-all active:scale-98"
-                  >
-                    বিজ্ঞপ্তি প্রকাশ করুন
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+      <LostNoticeModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={fetchNotices}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import {
   Search,
   Menu,
@@ -17,16 +18,21 @@ import {
   ShieldCheck,
   AlertCircle,
   Building2,
-  Lock,
   ChevronDown,
   PlusCircle,
-  FileQuestion
+  FileQuestion,
+  Heart,
+  User,
+  LogIn,
+  LogOut,
+  Shield
 } from 'lucide-react';
 import { UPAZILAS } from '@/data/kurigramData';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, isAdmin, openAuthModal, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [upazilaDropdownOpen, setUpazilaDropdownOpen] = useState(false);
@@ -47,6 +53,7 @@ export default function Navbar() {
     { nameBn: 'ঐতিহ্য ও পর্যটন', href: '/heritage', icon: Landmark },
     // { nameBn: 'জরুরি হাসপাতাল', href: '/healthcare', icon: Hospital }, // Hidden
     { nameBn: 'ব্লাড ব্যাংক', href: '/blood-bank', icon: HeartHandshake },
+    { nameBn: 'জরুরি রক্তের আবেদন', href: '/blood-requests', icon: Heart },
     { nameBn: 'হারানো বিজ্ঞপ্তি', href: '/lost-and-found', icon: FileQuestion },
     // { nameBn: 'পুলিশ ও প্রশাসন', href: '/police-services', icon: ShieldCheck }, // Hidden
     { nameBn: 'নাগরিক সমস্যা ট্র্যাকার', href: '/reports', icon: AlertCircle },
@@ -95,7 +102,7 @@ export default function Navbar() {
           </button>
         </form>
 
-        {/* Right: CTA & Mobile Hamburger */}
+        {/* Right: CTA & User Auth & Mobile Hamburger */}
         <div className="flex items-center gap-2">
           <Link
             href="/reports#submit"
@@ -104,6 +111,41 @@ export default function Navbar() {
             <PlusCircle className="w-3.5 h-3.5" />
             <span>সমস্যা রিপোর্ট করুন</span>
           </Link>
+
+          {/* User Auth Button */}
+          {user ? (
+            <div className="hidden sm:flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-lg px-2.5 py-1.5 text-xs shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-bold text-slate-800 max-w-[110px] truncate">{user.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-slate-200 text-slate-700'}`}>
+                {user.role === 'admin' ? 'অ্যাডমিন' : 'নাগরিক'}
+              </span>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-2 py-0.5 rounded ml-1 transition-colors"
+                  title="অ্যাডমিন ড্যাশবোর্ড"
+                >
+                  প্যানেল
+                </Link>
+              )}
+              <button
+                onClick={() => logout()}
+                className="text-slate-400 hover:text-rose-600 ml-1 p-0.5 transition-colors"
+                title="লগআউট"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => openAuthModal('login')}
+              className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-800 px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-2xs active:scale-95"
+            >
+              <LogIn className="w-3.5 h-3.5 text-emerald-700" />
+              <span>লগইন</span>
+            </button>
+          )}
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -168,16 +210,6 @@ export default function Navbar() {
             </div>
             */}
           </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1 text-xs text-[#575e65] hover:text-[#14532d] px-2 py-1"
-            >
-              <Lock className="w-3 h-3" />
-              <span>অ্যাডমিন পোর্টাল</span>
-            </Link>
-          </div>
         </div>
       </nav>
 
@@ -229,22 +261,68 @@ export default function Navbar() {
             })}
           </div>
 
-          <div className="pt-3 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+          {/* Mobile User Profile / Login Bar */}
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/90 text-xs">
+            {user ? (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-bold text-slate-900 block truncate">{user.name}</span>
+                    <span className="text-[10px] text-slate-500">
+                      রোল: <strong className={user.role === 'admin' ? 'text-indigo-700' : 'text-emerald-700'}>{user.role === 'admin' ? 'প্রশাসক (Admin)' : 'নাগরিক (User)'}</strong>
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="bg-indigo-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
+                    >
+                      প্যানেল
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <span>লগআউট</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-600 text-[11px]">আইডি যুক্ত করতে লগইন করুন</span>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openAuthModal('login');
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-2xs"
+                >
+                  <LogIn className="w-3 h-3" />
+                  <span>লগইন / নিবন্ধন</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-3 border-t border-slate-100">
             <Link
               href="/reports#submit"
               onClick={() => setMobileMenuOpen(false)}
-              className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200"
+              className="w-full inline-flex items-center justify-center gap-1.5 text-emerald-700 font-semibold hover:text-emerald-800 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 text-xs"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ সমস্যা রিপোর্ট করুন</span>
-            </Link>
-            <Link
-              href="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 font-medium"
-            >
-              <Lock className="w-3 h-3" />
-              <span>অ্যাডমিন পোর্টাল</span>
+              <span>+ নাগরিক সমস্যা রিপোর্ট করুন</span>
             </Link>
           </div>
         </div>

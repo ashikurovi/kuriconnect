@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { COMMUNITY_REPORTS, UPAZILAS } from '@/data/kurigramData';
+import { UPAZILAS } from '@/data/kurigramData';
 import { CommunityReport } from '@/types';
 import ReportModal from '@/components/ReportModal';
 import {
@@ -20,11 +20,24 @@ import {
 } from 'lucide-react';
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState<CommunityReport[]>(COMMUNITY_REPORTS);
+  const [reports, setReports] = useState<CommunityReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedUpazila, setSelectedUpazila] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [upvotedIds, setUpvotedIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetch('/api/reports')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setReports(data.data);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleUpvote = (id: string) => {
     if (upvotedIds[id]) return;
@@ -197,6 +210,17 @@ export default function ReportsPage() {
             <p className="text-xs sm:text-sm text-gray-700 leading-relaxed mb-3">
               {report.descriptionBn}
             </p>
+
+            {/* Photo Gallery if attached */}
+            {report.images && report.images.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                {report.images.map((img, idx) => (
+                  <div key={idx} className="rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-50">
+                    <img src={img} alt={`ছবি ${idx + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="text-xs text-gray-500 mb-3 flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-gray-400" />

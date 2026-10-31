@@ -1,0 +1,1050 @@
+import { db } from './db';
+import { BloodDonor, BloodRequest, CommunityReport, LostNotice, ScamAlert, AuthUser } from '@/types';
+import { UPAZILAS } from '@/data/kurigramData';
+
+export interface StoredUser extends AuthUser {
+  password: string;
+}
+
+export class DatabaseStore {
+  // In-memory persistent users for both admin & regular citizens
+  private users: StoredUser[] = [
+    {
+      id: 'usr-admin-1',
+      name: 'প্রধান প্রশাসক (Admin)',
+      email: 'admin@kuriconnect.org',
+      phone: '01700000000',
+      password: 'admin123',
+      role: 'admin',
+      createdAt: '2026-01-01'
+    },
+    {
+      id: 'usr-citizen-1',
+      name: 'কুড়িগ্রাম সাধারণ নাগরিক (User)',
+      email: 'user@kuriconnect.org',
+      phone: '01711111111',
+      password: 'user123',
+      role: 'user',
+      createdAt: '2026-01-01'
+    }
+  ];
+
+  // ===================== AUTH & USER MANAGEMENT =====================
+  async authenticate(identifier: string, password: string): Promise<AuthUser | null> {
+    const clean = identifier.trim().toLowerCase();
+    const user = this.users.find(
+      (u) =>
+        (u.phone === clean || (u.email && u.email.toLowerCase() === clean)) &&
+        u.password === password
+    );
+    if (!user) return null;
+    const { password: _, ...safeUser } = user;
+    return safeUser;
+  }
+
+  async registerUser(data: {
+    name: string;
+    phone: string;
+    email?: string;
+    password: string;
+    role?: 'admin' | 'user';
+  }): Promise<{ user?: AuthUser; error?: string }> {
+    const phone = data.phone.trim();
+    const email = data.email?.trim().toLowerCase();
+
+    const existing = this.users.find(
+      (u) => u.phone === phone || (email && u.email && u.email.toLowerCase() === email)
+    );
+    if (existing) {
+      return { error: 'এই মোবাইল নম্বর বা ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা আছে' };
+    }
+
+    const newUser: StoredUser = {
+      id: `usr-${Date.now()}`,
+      name: data.name.trim(),
+      phone,
+      email: email || undefined,
+      password: data.password,
+      role: data.role === 'admin' ? 'admin' : 'user',
+      createdAt: new Date().toISOString()
+    };
+    this.users.unshift(newUser);
+
+    const { password: _, ...safeUser } = newUser;
+    return { user: safeUser };
+  }
+
+  async getUserById(id: string): Promise<AuthUser | null> {
+    const user = this.users.find((u) => u.id === id);
+    if (!user) return null;
+    const { password: _, ...safeUser } = user;
+    return safeUser;
+  }
+
+  async getAllUsers(): Promise<AuthUser[]> {
+    return this.users.map(({ password: _, ...safeUser }) => safeUser);
+  }
+  // ===================== BLOOD DONORS =====================
+  async getBloodDonors(params?: {
+    bloodGroup?: string;
+    upazilaId?: string;
+    search?: string;
+    limit?: number;
+    approvedOnly?: boolean;
+  }) {
+    try {
+      let query = `SELECT * FROM blood_donors WHERE 1=1`;
+      const values: any[] = [];
+      let idx = 1;
+
+      // Filter by approval: by default, landing & public pages only see approved donors
+      if (params?.approvedOnly) {
+        query += ` AND is_approved = true`;
+      }
+      if (params?.bloodGroup && params.bloodGroup !== 'all') {
+        query += ` AND blood_group = $${idx++}`;
+        values.push(params.bloodGroup);
+      }
+      if (params?.upazilaId && params.upazilaId !== 'all') {
+        query += ` AND upazila_id = $${idx++}`;
+        values.push(params.upazilaId);
+      }
+      if (params?.search) {
+        query += ` AND (LOWER(donor_name_bn) LIKE $${idx} OR LOWER(area_bn) LIKE $${idx})`;
+        values.push(`%${params.search.toLowerCase()}%`);
+        idx++;
+      }
+      query += ` ORDER BY created_at DESC`;
+      if (params?.limit) {
+        query += ` LIMIT $${idx++}`;
+        values.push(params.limit);
+      }
+
+      const rows = await db.query<any>(query, values);
+      return rows.map((r) => ({
+        id: r.id,
+        donorNameBn: r.donor_name_bn,
+        donorNameEn: r.donor_name_en,
+        bloodGroup: r.blood_group,
+        upazilaId: r.upazila_id,
+        upazilaNameBn: r.upazila_name_bn,
+        unionNameBn: r.union_name_bn,
+        areaBn: r.area_bn,
+        phone: r.phone,
+        contactNumberMasked: r.contact_number_masked,
+        directContactAvailable: r.direct_contact_available,
+        lastDonationDate: r.last_donation_date,
+        availabilityStatus: r.availability_status || 'available',
+        isVerified: r.is_verified,
+        isApproved: r.is_approved ?? false,
+        verifiedDate: r.verified_date,
+        registeredSince: r.registered_since,
+        totalDonationsCount: r.total_donations_count,
+        emergencyAvailable: r.emergency_available,
+        notes: r.notes
+      })) as BloodDonor[];
+    } catch (err) {
+      console.error('DatabaseStore.getBloodDonors error:', err);
+      return [];
+    }
+  }
+
+  async addBloodDonor(data: Partial<BloodDonor> & { donorNameBn: string; bloodGroup: BloodDonor['bloodGroup']; phone?: string }) {
+    const upazila = UPAZILAS.find((u) => u.id === data.upazilaId);
+    const rawPhone = data.phone || '০১৭১১-০০০৪৫৬';
+    const masked = rawPhone.length > 5
+      ? `${rawPhone.slice(0, 5)}-***${rawPhone.slice(-3)}`
+      : '০১৭১১-***৪৫৬';
+    const id = `donor-${Date.now()}`;
+    const upazilaId = (data.upazilaId as any) || 'kurigram-sadar';
+    const upazilaNameBn = upazila ? upazila.nameBn : 'কুড়িগ্রাম সদর';
+
+    // Requires admin approval (is_approved = false by default)
+    await db.query(
+      `INSERT INTO blood_donors (
+        id, donor_name_bn, donor_name_en, blood_group, upazila_id, upazila_name_bn, union_name_bn,
+        area_bn, phone, contact_number_masked, direct_contact_available, availability_status, last_donation_date,
+        is_verified, is_approved, verified_date, registered_since, total_donations_count, emergency_available, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
+      [
+        id,
+        data.donorNameBn,
+        data.donorNameEn || '',
+        data.bloodGroup,
+        upazilaId,
+        upazilaNameBn,
+        data.unionNameBn || '',
+        data.areaBn || 'সদর',
+        rawPhone,
+        masked,
+        true,
+        data.availabilityStatus || 'available',
+        data.lastDonationDate || null,
+        true,
+        false, // Pending approval
+        'অপেক্ষমাণ (অনুমোদন প্রয়োজন)',
+        new Date().toISOString().split('T')[0],
+        data.totalDonationsCount || 1,
+        data.emergencyAvailable ?? true,
+        data.notes || ''
+      ]
+    );
+
+    return {
+      id,
+      donorNameBn: data.donorNameBn,
+      donorNameEn: data.donorNameEn || '',
+      bloodGroup: data.bloodGroup,
+      upazilaId,
+      upazilaNameBn,
+      unionNameBn: data.unionNameBn || '',
+      areaBn: data.areaBn || 'সদর',
+      phone: rawPhone,
+      contactNumberMasked: masked,
+      directContactAvailable: true,
+      lastDonationDate: data.lastDonationDate,
+      availabilityStatus: data.availabilityStatus || 'available',
+      isVerified: true,
+      isApproved: false,
+      verifiedDate: 'অপেক্ষমাণ (অনুমোদন প্রয়োজন)',
+      registeredSince: new Date().toISOString().split('T')[0],
+      totalDonationsCount: data.totalDonationsCount || 1,
+      emergencyAvailable: data.emergencyAvailable ?? true,
+      notes: data.notes || ''
+    } as BloodDonor;
+  }
+
+  async updateBloodDonor(id: string, updates: Partial<BloodDonor>) {
+    try {
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+
+      if (updates.isApproved !== undefined) {
+        setClauses.push(`is_approved = $${idx++}`);
+        values.push(updates.isApproved);
+        if (updates.isApproved) {
+          setClauses.push(`verified_date = $${idx++}`);
+          values.push('অনুমোদিত');
+        }
+      }
+      if (updates.availabilityStatus !== undefined) {
+        setClauses.push(`availability_status = $${idx++}`);
+        values.push(updates.availabilityStatus);
+      }
+
+      if (setClauses.length > 0) {
+        values.push(id);
+        await db.query(`UPDATE blood_donors SET ${setClauses.join(', ')} WHERE id = $${idx}`, values);
+      }
+
+      const rows = await db.query<any>(`SELECT * FROM blood_donors WHERE id = $1`, [id]);
+      return rows[0] || null;
+    } catch (err) {
+      console.error('updateBloodDonor error:', err);
+      return null;
+    }
+  }
+
+  async deleteBloodDonor(id: string) {
+    try {
+      await db.query(`DELETE FROM blood_donors WHERE id = $1`, [id]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ===================== BLOOD REQUESTS (জরুরি রক্তের আবেদন) =====================
+  async getBloodRequests(params?: { status?: string; upazilaId?: string; bloodGroup?: string; userId?: string; limit?: number }) {
+    try {
+      let query = `SELECT * FROM blood_requests WHERE 1=1`;
+      const values: any[] = [];
+      let idx = 1;
+
+      if (params?.status && params.status !== 'all') {
+        query += ` AND status = $${idx++}`;
+        values.push(params.status);
+      }
+      if (params?.upazilaId && params.upazilaId !== 'all') {
+        query += ` AND upazila_id = $${idx++}`;
+        values.push(params.upazilaId);
+      }
+      if (params?.bloodGroup && params.bloodGroup !== 'all') {
+        query += ` AND blood_group = $${idx++}`;
+        values.push(params.bloodGroup);
+      }
+      if (params?.userId && params.userId !== 'all') {
+        query += ` AND user_id = $${idx++}`;
+        values.push(params.userId);
+      }
+      query += ` ORDER BY created_at DESC`;
+      if (params?.limit) {
+        query += ` LIMIT $${idx++}`;
+        values.push(params.limit);
+      }
+
+      const rows = await db.query<any>(query, values);
+      return rows.map((r) => ({
+        id: r.id,
+        userId: r.user_id,
+        patientNameBn: r.patient_name_bn,
+        bloodGroup: r.blood_group,
+        bagsNeeded: r.bags_needed,
+        hospitalNameBn: r.hospital_name_bn,
+        problemDescription: r.problem_description,
+        upazilaId: r.upazila_id,
+        upazilaNameBn: r.upazila_name_bn,
+        contactNumber: r.contact_number,
+        urgencyDate: r.urgency_date,
+        status: r.status,
+        createdAt: r.created_at
+      })) as BloodRequest[];
+    } catch (err) {
+      console.error('DatabaseStore.getBloodRequests error:', err);
+      return [];
+    }
+  }
+
+  async addBloodRequest(data: {
+    userId?: string;
+    patientNameBn: string;
+    bloodGroup: BloodRequest['bloodGroup'];
+    bagsNeeded: number;
+    hospitalNameBn: string;
+    problemDescription: string;
+    upazilaId?: string;
+    contactNumber: string;
+    urgencyDate?: string;
+  }) {
+    const upazila = UPAZILAS.find((u) => u.id === data.upazilaId);
+    const id = `req-${Date.now()}`;
+    const upazilaId = (data.upazilaId as any) || 'kurigram-sadar';
+    const upazilaNameBn = upazila ? upazila.nameBn : 'কুড়িগ্রাম সদর';
+
+    try {
+      await db.query(
+        `INSERT INTO blood_requests (
+          id, patient_name_bn, blood_group, bags_needed, hospital_name_bn, problem_description,
+          upazila_id, upazila_name_bn, contact_number, urgency_date, status, user_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [
+          id,
+          data.patientNameBn,
+          data.bloodGroup,
+          data.bagsNeeded || 1,
+          data.hospitalNameBn,
+          data.problemDescription,
+          upazilaId,
+          upazilaNameBn,
+          data.contactNumber,
+          data.urgencyDate || 'আজকের মধ্যে',
+          'approved', // Auto-approved: emergency blood requests are instantly published
+          data.userId || null
+        ]
+      );
+    } catch {
+      await db.query(
+        `INSERT INTO blood_requests (
+          id, patient_name_bn, blood_group, bags_needed, hospital_name_bn, problem_description,
+          upazila_id, upazila_name_bn, contact_number, urgency_date, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          id,
+          data.patientNameBn,
+          data.bloodGroup,
+          data.bagsNeeded || 1,
+          data.hospitalNameBn,
+          data.problemDescription,
+          upazilaId,
+          upazilaNameBn,
+          data.contactNumber,
+          data.urgencyDate || 'আজকের মধ্যে',
+          'approved'
+        ]
+      );
+    }
+
+    return {
+      id,
+      userId: data.userId,
+      patientNameBn: data.patientNameBn,
+      bloodGroup: data.bloodGroup,
+      bagsNeeded: data.bagsNeeded || 1,
+      hospitalNameBn: data.hospitalNameBn,
+      problemDescription: data.problemDescription,
+      upazilaId,
+      upazilaNameBn,
+      contactNumber: data.contactNumber,
+      urgencyDate: data.urgencyDate || 'আজকের মধ্যে',
+      status: 'approved'
+    } as BloodRequest;
+  }
+
+  async updateBloodRequest(id: string, updates: Partial<BloodRequest>) {
+    try {
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+
+      if (updates.status !== undefined) {
+        setClauses.push(`status = $${idx++}`);
+        values.push(updates.status);
+      }
+
+      if (setClauses.length > 0) {
+        values.push(id);
+        await db.query(`UPDATE blood_requests SET ${setClauses.join(', ')} WHERE id = $${idx}`, values);
+      }
+
+      const rows = await db.query<any>(`SELECT * FROM blood_requests WHERE id = $1`, [id]);
+      return rows[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async deleteBloodRequest(id: string) {
+    try {
+      await db.query(`DELETE FROM blood_requests WHERE id = $1`, [id]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ===================== COMMUNITY REPORTS =====================
+  async getReports(params?: { status?: string; upazilaId?: string; category?: string; userId?: string; search?: string; limit?: number }) {
+    try {
+      let query = `SELECT * FROM community_reports WHERE 1=1`;
+      const values: any[] = [];
+      let idx = 1;
+
+      if (params?.status && params.status !== 'all') {
+        query += ` AND status = $${idx++}`;
+        values.push(params.status);
+      }
+      if (params?.upazilaId && params.upazilaId !== 'all') {
+        query += ` AND upazila_id = $${idx++}`;
+        values.push(params.upazilaId);
+      }
+      if (params?.category && params.category !== 'all') {
+        query += ` AND category = $${idx++}`;
+        values.push(params.category);
+      }
+      if (params?.userId && params.userId !== 'all') {
+        query += ` AND user_id = $${idx++}`;
+        values.push(params.userId);
+      }
+      if (params?.search) {
+        query += ` AND (LOWER(title_bn) LIKE $${idx} OR LOWER(location_details_bn) LIKE $${idx})`;
+        values.push(`%${params.search.toLowerCase()}%`);
+        idx++;
+      }
+      query += ` ORDER BY created_at DESC`;
+      if (params?.limit) {
+        query += ` LIMIT $${idx++}`;
+        values.push(params.limit);
+      }
+
+      const rows = await db.query<any>(query, values);
+      return rows.map((r) => ({
+        id: r.id,
+        userId: r.user_id,
+        trackingCode: r.tracking_code,
+        titleBn: r.title_bn,
+        descriptionBn: r.description_bn,
+        category: r.category,
+        categoryLabelBn: r.category_label_bn || 'নাগরিক সেবা ও জনসমস্যা',
+        upazilaId: r.upazila_id,
+        upazilaNameBn: r.upazila_name_bn,
+        locationDetailsBn: r.location_details_bn,
+        status: r.status,
+        priority: r.priority,
+        submittedAt: r.submitted_at || 'আজ',
+        updatedAt: r.updated_at || 'আজ',
+        reporterNameMasked: r.reporter_name_masked,
+        reporterPhoneMasked: r.reporter_phone_masked,
+        upvotesCount: r.upvotes_count || 1,
+        images: r.images || []
+      })) as CommunityReport[];
+    } catch (err) {
+      console.error('DatabaseStore.getReports error:', err);
+      return [];
+    }
+  }
+
+  async addReport(data: {
+    userId?: string;
+    titleBn: string;
+    descriptionBn: string;
+    locationDetailsBn: string;
+    category?: CommunityReport['category'];
+    upazilaId?: string;
+    reporterName?: string;
+    reporterPhone?: string;
+    priority?: CommunityReport['priority'];
+    images?: string[];
+  }) {
+    const upazila = UPAZILAS.find((u) => u.id === data.upazilaId);
+    const trackingCode = `KC-${Date.now().toString().slice(-6)}`;
+    const id = `rep-${Date.now()}`;
+    const upazilaId = (data.upazilaId as any) || 'kurigram-sadar';
+    const upazilaNameBn = upazila ? upazila.nameBn : 'কুড়িগ্রাম সদর';
+    const reporterNameMasked = data.reporterName ? `${data.reporterName.charAt(0)}... (নাগরিক)` : 'নাম প্রকাশে অনিচ্ছুক';
+    const reporterPhoneMasked = data.reporterPhone ? `${data.reporterPhone.slice(0, 5)}-***` : undefined;
+    const images = Array.isArray(data.images) ? data.images : [];
+
+    try {
+      await db.query(
+        `INSERT INTO community_reports (
+          id, tracking_code, title_bn, description_bn, category, category_label_bn,
+          upazila_id, upazila_name_bn, location_details_bn, status, priority,
+          submitted_at, updated_at, reporter_name_masked, reporter_phone_masked, upvotes_count, images, user_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+        [
+          id,
+          trackingCode,
+          data.titleBn,
+          data.descriptionBn,
+          data.category || 'damaged-road',
+          'নাগরিক সেবা ও জনসমস্যা',
+          upazilaId,
+          upazilaNameBn,
+          data.locationDetailsBn,
+          'submitted',
+          data.priority || 'medium',
+          'আজ',
+          'আজ',
+          reporterNameMasked,
+          reporterPhoneMasked || null,
+          1,
+          images,
+          data.userId || null
+        ]
+      );
+    } catch {
+      await db.query(
+        `INSERT INTO community_reports (
+          id, tracking_code, title_bn, description_bn, category, category_label_bn,
+          upazila_id, upazila_name_bn, location_details_bn, status, priority,
+          submitted_at, updated_at, reporter_name_masked, reporter_phone_masked, upvotes_count, images
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+        [
+          id,
+          trackingCode,
+          data.titleBn,
+          data.descriptionBn,
+          data.category || 'damaged-road',
+          'নাগরিক সেবা ও জনসমস্যা',
+          upazilaId,
+          upazilaNameBn,
+          data.locationDetailsBn,
+          'submitted',
+          data.priority || 'medium',
+          'আজ',
+          'আজ',
+          reporterNameMasked,
+          reporterPhoneMasked || null,
+          1,
+          images
+        ]
+      );
+    }
+
+    return {
+      id,
+      userId: data.userId,
+      trackingCode,
+      titleBn: data.titleBn,
+      descriptionBn: data.descriptionBn,
+      category: data.category || 'damaged-road',
+      categoryLabelBn: 'নাগরিক সেবা ও জনসমস্যা',
+      upazilaId,
+      upazilaNameBn,
+      locationDetailsBn: data.locationDetailsBn,
+      status: 'submitted',
+      priority: data.priority || 'medium',
+      submittedAt: 'আজ',
+      updatedAt: 'আজ',
+      reporterNameMasked,
+      reporterPhoneMasked,
+      upvotesCount: 1,
+      images
+    } as CommunityReport;
+  }
+
+  async updateReport(id: string, updates: Partial<CommunityReport>) {
+    try {
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+
+      if (updates.status !== undefined) {
+        setClauses.push(`status = $${idx++}`);
+        values.push(updates.status);
+      }
+      if (updates.priority !== undefined) {
+        setClauses.push(`priority = $${idx++}`);
+        values.push(updates.priority);
+      }
+      if (updates.titleBn !== undefined) {
+        setClauses.push(`title_bn = $${idx++}`);
+        values.push(updates.titleBn);
+      }
+      if (updates.descriptionBn !== undefined) {
+        setClauses.push(`description_bn = $${idx++}`);
+        values.push(updates.descriptionBn);
+      }
+      if (updates.locationDetailsBn !== undefined) {
+        setClauses.push(`location_details_bn = $${idx++}`);
+        values.push(updates.locationDetailsBn);
+      }
+
+      setClauses.push(`updated_at = $${idx++}`);
+      values.push('আজ');
+
+      if (setClauses.length > 0) {
+        values.push(id);
+        await db.query(`UPDATE community_reports SET ${setClauses.join(', ')} WHERE id = $${idx}`, values);
+      }
+
+      const rows = await db.query<any>(`SELECT * FROM community_reports WHERE id = $1`, [id]);
+      return rows[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async deleteReport(id: string) {
+    try {
+      await db.query(`DELETE FROM community_reports WHERE id = $1`, [id]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ===================== LOST & FOUND =====================
+  async getLostNotices(params?: { type?: string; status?: string; upazilaId?: string; category?: string; userId?: string; search?: string; limit?: number }) {
+    try {
+      let query = `SELECT * FROM lost_notices WHERE 1=1`;
+      const values: any[] = [];
+      let idx = 1;
+
+      if (params?.type && params.type !== 'all') {
+        query += ` AND type = $${idx++}`;
+        values.push(params.type);
+      }
+      if (params?.status && params.status !== 'all') {
+        query += ` AND status = $${idx++}`;
+        values.push(params.status);
+      }
+      if (params?.upazilaId && params.upazilaId !== 'all') {
+        query += ` AND upazila_id = $${idx++}`;
+        values.push(params.upazilaId);
+      }
+      if (params?.category && params.category !== 'all') {
+        query += ` AND category = $${idx++}`;
+        values.push(params.category);
+      }
+      if (params?.userId && params.userId !== 'all') {
+        query += ` AND user_id = $${idx++}`;
+        values.push(params.userId);
+      }
+      if (params?.search) {
+        query += ` AND (LOWER(title_bn) LIKE $${idx} OR LOWER(contact_name) LIKE $${idx})`;
+        values.push(`%${params.search.toLowerCase()}%`);
+        idx++;
+      }
+      query += ` ORDER BY created_at DESC`;
+      if (params?.limit) {
+        query += ` LIMIT $${idx++}`;
+        values.push(params.limit);
+      }
+
+      const rows = await db.query<any>(query, values);
+      const categoryLabelMap: Record<string, string> = {
+        person: 'নিখোঁজ ব্যক্তি',
+        document: 'আইডি কার্ড ও সনদ',
+        vehicle: 'যানবাহন ও সাইকেল',
+        valuable: 'মোবাইল ও মূল্যবান জিনিস',
+        other: 'অন্যান্য'
+      };
+
+      return rows.map((r) => ({
+        id: r.id,
+        userId: r.user_id,
+        trackingNumber: r.tracking_number,
+        type: r.type,
+        category: r.category,
+        categoryLabelBn: (r.category_label_bn && r.category_label_bn !== 'হারানো ও প্রাপ্তি')
+          ? r.category_label_bn
+          : (categoryLabelMap[r.category] || 'অন্যান্য'),
+        titleBn: r.title_bn,
+        descriptionBn: r.description_bn,
+        upazilaId: r.upazila_id,
+        upazilaNameBn: r.upazila_name_bn,
+        locationDetailsBn: r.location_details_bn,
+        date: r.event_date || 'আজ',
+        contactName: r.contact_name,
+        contactPhone: r.contact_phone,
+        gdNumber: r.gd_number,
+        rewardBn: r.reward_bn,
+        status: r.status,
+        isVerified: r.is_verified
+      })) as unknown as LostNotice[];
+    } catch (err) {
+      console.error('DatabaseStore.getLostNotices error:', err);
+      return [];
+    }
+  }
+
+  async addLostNotice(data: {
+    userId?: string;
+    type: 'lost' | 'found';
+    category: LostNotice['category'];
+    titleBn: string;
+    descriptionBn?: string;
+    upazilaId?: string;
+    locationDetailsBn?: string;
+    contactName: string;
+    contactPhone: string;
+    gdNumber?: string;
+    rewardBn?: string;
+  }) {
+    const upazila = UPAZILAS.find((u) => u.id === data.upazilaId);
+    const trackingNumber = `LF-${Date.now().toString().slice(-6)}`;
+    const id = `lost-${Date.now()}`;
+    const upazilaId = (data.upazilaId as any) || 'kurigram-sadar';
+    const upazilaNameBn = upazila ? upazila.nameBn : 'কুড়িগ্রাম সদর';
+
+    const categoryLabelMap: Record<string, string> = {
+      person: 'নিখোঁজ ব্যক্তি',
+      document: 'আইডি কার্ড ও সনদ',
+      vehicle: 'যানবাহন ও সাইকেল',
+      valuable: 'মোবাইল ও মূল্যবান জিনিস',
+      other: 'অন্যান্য'
+    };
+    const categoryLabelBn = categoryLabelMap[data.category] || 'অন্যান্য';
+
+    try {
+      await db.query(
+        `INSERT INTO lost_notices (
+          id, tracking_number, type, category, category_label_bn, title_bn, description_bn,
+          upazila_id, upazila_name_bn, location_details_bn, event_date, contact_name, contact_phone,
+          gd_number, reward_bn, status, is_verified, user_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+        [
+          id,
+          trackingNumber,
+          data.type,
+          data.category,
+          categoryLabelBn,
+          data.titleBn,
+          data.descriptionBn || '',
+          upazilaId,
+          upazilaNameBn,
+          data.locationDetailsBn || '',
+          'আজ',
+          data.contactName,
+          data.contactPhone,
+          data.gdNumber || null,
+          data.rewardBn || null,
+          'active',
+          true,
+          data.userId || null
+        ]
+      );
+    } catch {
+      await db.query(
+        `INSERT INTO lost_notices (
+          id, tracking_number, type, category, category_label_bn, title_bn, description_bn,
+          upazila_id, upazila_name_bn, location_details_bn, event_date, contact_name, contact_phone,
+          gd_number, reward_bn, status, is_verified
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+        [
+          id,
+          trackingNumber,
+          data.type,
+          data.category,
+          categoryLabelBn,
+          data.titleBn,
+          data.descriptionBn || '',
+          upazilaId,
+          upazilaNameBn,
+          data.locationDetailsBn || '',
+          'আজ',
+          data.contactName,
+          data.contactPhone,
+          data.gdNumber || null,
+          data.rewardBn || null,
+          'active',
+          true
+        ]
+      );
+    }
+
+    return {
+      id,
+      userId: data.userId,
+      trackingNumber,
+      type: data.type,
+      category: data.category,
+      categoryLabelBn,
+      titleBn: data.titleBn,
+      descriptionBn: data.descriptionBn || '',
+      upazilaId,
+      upazilaNameBn,
+      locationDetailsBn: data.locationDetailsBn || '',
+      date: 'আজ',
+      contactName: data.contactName,
+      contactPhone: data.contactPhone,
+      gdNumber: data.gdNumber,
+      rewardBn: data.rewardBn,
+      status: 'active',
+      isVerified: true
+    } as unknown as LostNotice;
+  }
+
+  async updateLostNotice(id: string, updates: Partial<LostNotice>) {
+    try {
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+
+      if (updates.status !== undefined) {
+        setClauses.push(`status = $${idx++}`);
+        values.push(updates.status);
+      }
+      if (updates.titleBn !== undefined) {
+        setClauses.push(`title_bn = $${idx++}`);
+        values.push(updates.titleBn);
+      }
+      if (updates.descriptionBn !== undefined) {
+        setClauses.push(`description_bn = $${idx++}`);
+        values.push(updates.descriptionBn);
+      }
+
+      if (setClauses.length > 0) {
+        values.push(id);
+        await db.query(`UPDATE lost_notices SET ${setClauses.join(', ')} WHERE id = $${idx}`, values);
+      }
+
+      const rows = await db.query<any>(`SELECT * FROM lost_notices WHERE id = $1`, [id]);
+      return rows[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async deleteLostNotice(id: string) {
+    try {
+      await db.query(`DELETE FROM lost_notices WHERE id = $1`, [id]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ===================== SCAM ALERTS (প্রতারণা) =====================
+  async getScamAlerts(params?: {
+    severity?: string;
+    category?: string;
+    userId?: string;
+    search?: string;
+    limit?: number;
+    approvedOnly?: boolean;
+  }) {
+    try {
+      let query = `SELECT * FROM scam_alerts WHERE 1=1`;
+      const values: any[] = [];
+      let idx = 1;
+
+      // Filter by approval: by default, landing & public pages only see approved alerts
+      if (params?.approvedOnly) {
+        query += ` AND is_approved = true`;
+      }
+      if (params?.severity && params.severity !== 'all') {
+        query += ` AND severity = $${idx++}`;
+        values.push(params.severity);
+      }
+      if (params?.category && params.category !== 'all') {
+        query += ` AND scam_category = $${idx++}`;
+        values.push(params.category);
+      }
+      if (params?.userId && params.userId !== 'all') {
+        query += ` AND user_id = $${idx++}`;
+        values.push(params.userId);
+      }
+      if (params?.search) {
+        query += ` AND (LOWER(title_bn) LIKE $${idx} OR LOWER(summary_bn) LIKE $${idx})`;
+        values.push(`%${params.search.toLowerCase()}%`);
+        idx++;
+      }
+      query += ` ORDER BY created_at DESC`;
+      if (params?.limit) {
+        query += ` LIMIT $${idx++}`;
+        values.push(params.limit);
+      }
+
+      const rows = await db.query<any>(query, values);
+      return rows.map((r) => ({
+        id: r.id,
+        userId: r.user_id,
+        titleBn: r.title_bn,
+        summaryBn: r.summary_bn,
+        detailsBn: r.details_bn,
+        scamCategory: r.scam_category,
+        scamCategoryLabelBn: r.scam_category_label_bn,
+        targetType: r.target_type || 'individual',
+        suspectName: r.suspect_name,
+        suspectContact: r.suspect_contact,
+        images: r.images || [],
+        severity: r.severity,
+        preventionTipsBn: r.prevention_tips_bn || [],
+        verifiedBy: r.verified_by,
+        publishedDate: r.published_date,
+        isApproved: r.is_approved ?? false
+      })) as ScamAlert[];
+    } catch (err) {
+      console.error('DatabaseStore.getScamAlerts error:', err);
+      return [];
+    }
+  }
+
+  async addScamAlert(data: {
+    userId?: string;
+    titleBn: string;
+    summaryBn: string;
+    detailsBn?: string;
+    scamCategory: string;
+    scamCategoryLabelBn?: string;
+    targetType?: 'individual' | 'company';
+    suspectName?: string;
+    suspectContact?: string;
+    images?: string[];
+    severity?: ScamAlert['severity'];
+    preventionTipsBn?: string[];
+    verifiedBy?: string;
+    isApproved?: boolean;
+  }) {
+    const id = `scam-${Date.now()}`;
+    const tips = data.preventionTipsBn && data.preventionTipsBn.length > 0 
+      ? data.preventionTipsBn 
+      : ['অপরিচিত ব্যক্তির কথায় টাকা লেনদেন করবেন না'];
+
+    const isApproved = data.isApproved ?? false;
+    const images = Array.isArray(data.images) ? data.images : [];
+
+    try {
+      await db.query(
+        `INSERT INTO scam_alerts (
+          id, title_bn, summary_bn, details_bn, scam_category, scam_category_label_bn,
+          target_type, suspect_name, suspect_contact, images,
+          severity, prevention_tips_bn, verified_by, published_date, is_approved, user_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+        [
+          id,
+          data.titleBn,
+          data.summaryBn,
+          data.detailsBn || data.summaryBn,
+          data.scamCategory,
+          data.scamCategoryLabelBn || 'প্রতারণা সতর্কতা',
+          data.targetType || 'individual',
+          data.suspectName || null,
+          data.suspectContact || null,
+          images,
+          data.severity || 'high',
+          tips,
+          data.verifiedBy || 'কুড়িগ্রাম জেলা প্রশাসন ও সাইবার হেল্পডেস্ক',
+          new Date().toISOString().split('T')[0],
+          isApproved,
+          data.userId || null
+        ]
+      );
+    } catch {
+      await db.query(
+        `INSERT INTO scam_alerts (
+          id, title_bn, summary_bn, details_bn, scam_category, scam_category_label_bn,
+          target_type, suspect_name, suspect_contact, images,
+          severity, prevention_tips_bn, verified_by, published_date, is_approved
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        [
+          id,
+          data.titleBn,
+          data.summaryBn,
+          data.detailsBn || data.summaryBn,
+          data.scamCategory,
+          data.scamCategoryLabelBn || 'প্রতারণা সতর্কতা',
+          data.targetType || 'individual',
+          data.suspectName || null,
+          data.suspectContact || null,
+          images,
+          data.severity || 'high',
+          tips,
+          data.verifiedBy || 'কুড়িগ্রাম জেলা প্রশাসন ও সাইবার হেল্পডেস্ক',
+          new Date().toISOString().split('T')[0],
+          isApproved
+        ]
+      );
+    }
+
+    return {
+      id,
+      userId: data.userId,
+      titleBn: data.titleBn,
+      summaryBn: data.summaryBn,
+      detailsBn: data.detailsBn || data.summaryBn,
+      scamCategory: data.scamCategory,
+      scamCategoryLabelBn: data.scamCategoryLabelBn || 'প্রতারণা সতর্কতা',
+      targetType: data.targetType || 'individual',
+      suspectName: data.suspectName,
+      suspectContact: data.suspectContact,
+      images,
+      severity: data.severity || 'high',
+      preventionTipsBn: tips,
+      verifiedBy: data.verifiedBy || 'কুড়িগ্রাম জেলা প্রশাসন ও সাইবার হেল্পডেস্ক',
+      publishedDate: new Date().toISOString().split('T')[0],
+      isApproved
+    } as ScamAlert;
+  }
+
+  async updateScamAlert(id: string, updates: Partial<ScamAlert>) {
+    try {
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let idx = 1;
+
+      if (updates.isApproved !== undefined) {
+        setClauses.push(`is_approved = $${idx++}`);
+        values.push(updates.isApproved);
+      }
+      if (updates.severity !== undefined) {
+        setClauses.push(`severity = $${idx++}`);
+        values.push(updates.severity);
+      }
+
+      if (setClauses.length > 0) {
+        values.push(id);
+        await db.query(`UPDATE scam_alerts SET ${setClauses.join(', ')} WHERE id = $${idx}`, values);
+      }
+
+      const rows = await db.query<any>(`SELECT * FROM scam_alerts WHERE id = $1`, [id]);
+      return rows[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async deleteScamAlert(id: string) {
+    try {
+      await db.query(`DELETE FROM scam_alerts WHERE id = $1`, [id]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+export const serverStore = new DatabaseStore();

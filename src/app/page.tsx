@@ -1,22 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
   UPAZILAS,
   HERITAGE_SITES,
   HEALTHCARE_FACILITIES,
-  BLOOD_DONORS,
   POLICE_CONTACTS,
-  COMMUNITY_REPORTS,
-  SCAM_ALERTS,
-  EMERGENCY_HELPLINES,
-  LOST_NOTICES
+  EMERGENCY_HELPLINES
+  // Data arrays will be fetched via API
 } from '@/data/kurigramData';
+import { LOST_NOTICE_CATEGORY_LABELS } from '@/types';
 import DistrictMap from '@/components/DistrictMap';
 import ReportModal from '@/components/ReportModal';
 import DonorModal from '@/components/DonorModal';
+import LostNoticeModal from '@/components/LostNoticeModal';
+import ScamAlertModal from '@/components/ScamAlertModal';
 import {
   Compass,
   ArrowRight,
@@ -44,14 +44,84 @@ import {
   FileQuestion
 } from 'lucide-react';
 
+const toBengaliNumber = (num: number | string) => {
+  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(num).replace(/\d/g, (d) => bnDigits[Number(d)]);
+};
+
 export default function HomePage() {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [donorModalOpen, setDonorModalOpen] = useState(false);
+  const [lostNoticeModalOpen, setLostNoticeModalOpen] = useState(false);
+  const [scamModalOpen, setScamModalOpen] = useState(false);
+  const [donorModalMode, setDonorModalMode] = useState<'register' | 'request'>('register');
   const [donorFilterGroup, setDonorFilterGroup] = useState<string>('all');
+  const [bloodDonors, setBloodDonors] = useState<any[]>([]);
+  const [bloodRequests, setBloodRequests] = useState<any[]>([]);
+  const [communityReports, setCommunityReports] = useState<any[]>([]);
+  const [lostNotices, setLostNotices] = useState<any[]>([]);
+  const [scamAlerts, setScamAlerts] = useState<any[]>([]);
+
+  const fetchDonors = () => {
+    fetch('/api/blood-donors')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setBloodDonors(data.data);
+      })
+      .catch(console.error);
+  };
+
+  const fetchBloodRequests = () => {
+    fetch('/api/blood-requests')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setBloodRequests(data.data);
+      })
+      .catch(console.error);
+  };
+
+  const fetchReports = () => {
+    fetch('/api/reports')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setCommunityReports(data.data);
+      })
+      .catch(console.error);
+  };
+
+  const fetchLostNotices = () => {
+    fetch('/api/lost-notices')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setLostNotices(data.data);
+      })
+      .catch(console.error);
+  };
+
+  const fetchScamAlerts = () => {
+    fetch('/api/scam-alerts')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setScamAlerts(data.data);
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    // Fetch blood donors & requests
+    fetchDonors();
+    fetchBloodRequests();
+    // Fetch community reports
+    fetchReports();
+    // Fetch lost notices
+    fetchLostNotices();
+    // Fetch scam alerts
+    fetchScamAlerts();
+  }, []);
 
   const filteredDonors = donorFilterGroup === 'all'
-    ? BLOOD_DONORS.slice(0, 4)
-    : BLOOD_DONORS.filter((d) => d.bloodGroup === donorFilterGroup).slice(0, 4);
+    ? bloodDonors.slice(0, 4)
+    : bloodDonors.filter((d) => d.bloodGroup === donorFilterGroup).slice(0, 4);
 
   return (
     <div className="space-y-16 pb-16">
@@ -92,27 +162,41 @@ export default function HomePage() {
             </p> */}
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 max-w-sm sm:max-w-none mx-auto w-full">
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 max-w-4xl mx-auto w-full">
               <a
                 href="#map"
-                className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-emerald-700/20 active:scale-95"
+                className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-emerald-700/20 active:scale-95"
               >
                 <Map className="w-4 h-4" />
                 <span>ইন্টারেক্টিভ মানচিত্র খুলুন</span>
               </a>
               <Link
                 href="/blood-bank"
-                className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-rose-700/20 active:scale-95"
+                className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all hover:shadow-rose-700/20 active:scale-95"
               >
                 <Heart className="w-4 h-4" />
                 <span>জরুরি রক্তদাতা খুঁজুন</span>
               </Link>
               <button
                 onClick={() => setReportModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-2xs transition-all active:scale-95"
+                className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-2xs transition-all active:scale-95"
               >
                 <PlusCircle className="w-4 h-4 text-emerald-600" />
                 <span>নাগরিক সমস্যা জানান</span>
+              </button>
+              <button
+                onClick={() => setLostNoticeModalOpen(true)}
+                className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-indigo-50/70 text-indigo-800 border border-indigo-200/90 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-2xs transition-all active:scale-95"
+              >
+                <FileQuestion className="w-4 h-4 text-indigo-600" />
+                <span>হারানো বিজ্ঞপ্তি দিন</span>
+              </button>
+              <button
+                onClick={() => setScamModalOpen(true)}
+                className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-amber-50/70 text-amber-900 border border-amber-300/90 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm shadow-2xs transition-all active:scale-95"
+              >
+                <ShieldAlert className="w-4 h-4 text-amber-600" />
+                <span>প্রতারণার তথ্য জানান</span>
               </button>
             </div>
           </div>
@@ -188,19 +272,27 @@ export default function HomePage() {
           {/* 📊 Live Platform Metrics Strip */}
           <div className="mt-8 pt-6 border-t border-slate-200/70 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="bg-white/80 backdrop-blur-xs py-3 px-4 rounded-xl border border-slate-200/60 shadow-2xs">
-              <span className="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 block">৯টি</span>
+              <span className="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 block">
+                {toBengaliNumber(UPAZILAS.length)}টি
+              </span>
               <span className="text-xs text-slate-500 mt-0.5">উপজেলা ও ৭৩টি ইউনিয়ন</span>
             </div>
             <div className="bg-white/80 backdrop-blur-xs py-3 px-4 rounded-xl border border-slate-200/60 shadow-2xs">
-              <span className="font-heading text-xl sm:text-2xl font-extrabold text-rose-600 block">১,২০০+</span>
+              <span className="font-heading text-xl sm:text-2xl font-extrabold text-rose-600 block">
+                {toBengaliNumber(bloodDonors.length)} জন
+              </span>
               <span className="text-xs text-slate-500 mt-0.5">নিবন্ধিত রক্তদাতা</span>
             </div>
             <div className="bg-white/80 backdrop-blur-xs py-3 px-4 rounded-xl border border-slate-200/60 shadow-2xs">
-              <span className="font-heading text-xl sm:text-2xl font-extrabold text-emerald-600 block">২৪/৭</span>
-              <span className="text-xs text-slate-500 mt-0.5">জরুরি হাসপাতাল ও সেবা</span>
+              <span className="font-heading text-xl sm:text-2xl font-extrabold text-emerald-600 block">
+                {toBengaliNumber(communityReports.length)}টি
+              </span>
+              <span className="text-xs text-slate-500 mt-0.5">নাগরিক সমস্যা রিপোর্ট</span>
             </div>
             <div className="bg-white/80 backdrop-blur-xs py-3 px-4 rounded-xl border border-slate-200/60 shadow-2xs">
-              <span className="font-heading text-xl sm:text-2xl font-extrabold text-purple-600 block">৫০+</span>
+              <span className="font-heading text-xl sm:text-2xl font-extrabold text-purple-600 block">
+                {toBengaliNumber(HERITAGE_SITES.length)}টি
+              </span>
               <span className="text-xs text-slate-500 mt-0.5">ঐতিহাসিক ও দর্শনীয় স্থান</span>
             </div>
           </div>
@@ -295,6 +387,77 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* 🏛️ SECTION: Popular Heritage Sites & Tourism */}
+      <section className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 mb-6 gap-2">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-semibold mb-1">
+              <Landmark className="w-3.5 h-3.5" />
+              <span>ইতিহাস, স্থাপত্য ও দর্শনীয় স্থান</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-heading font-extrabold text-slate-900 tracking-tight">
+              কুড়িগ্রামের দর্শনীয় ও ঐতিহাসিক নিদর্শন
+            </h2>
+          </div>
+          <Link
+            href="/heritage"
+            className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>সকল দর্শনীয় স্থান ({toBengaliNumber(HERITAGE_SITES.length)}টি)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {HERITAGE_SITES.slice(0, 3).map((site) => (
+            <article
+              key={site.id}
+              className="group bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg hover:border-emerald-500/50 transition-all flex flex-col justify-between"
+            >
+              <div>
+                <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                  <img
+                    src={site.mainImage}
+                    alt={site.nameBn}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <span className="absolute top-3 left-3 bg-slate-900/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-xs">
+                    {site.categoryLabelBn}
+                  </span>
+                  <span className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-xs">
+                    {site.upazilaNameBn}
+                  </span>
+                </div>
+
+                <div className="p-5">
+                  <Link href={`/heritage/${site.slug}`}>
+                    <h3 className="font-heading font-bold text-base text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
+                      {site.nameBn}
+                    </h3>
+                  </Link>
+                  <p className="text-xs text-slate-600 mt-2 line-clamp-2 leading-relaxed">
+                    {site.historyBn}
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-5 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="truncate max-w-[170px]">{site.addressBn}</span>
+                </span>
+                <Link
+                  href={`/heritage/${site.slug}`}
+                  className="text-emerald-700 font-semibold hover:underline"
+                >
+                  বিস্তারিত দেখুন
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {/* 🩸 SECTION: Blood Donor Network */}
       <section className="max-w-7xl mx-auto px-4">
         {/* Healthcare Facilities — HIDDEN as requested */}
@@ -311,17 +474,95 @@ export default function HomePage() {
                 <HeartHandshake className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-heading font-bold text-lg text-slate-900">স্বেচ্ছাসেবী রক্তদাতা নেটওয়ার্ক</h3>
+                <h3 className="font-heading font-bold text-lg text-slate-900">
+                  স্বেচ্ছাসেবী রক্তদাতা নেটওয়ার্ক ({toBengaliNumber(bloodDonors.length)} জন)
+                </h3>
                 <p className="text-xs text-slate-500">জরুরি রক্তের প্রয়োজনে ৯টি উপজেলার যাচাইকৃত রক্তদাতা সন্ধান</p>
               </div>
             </div>
-            <button
-              onClick={() => setDonorModalOpen(true)}
-              className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-xs transition-colors self-start sm:self-auto"
-            >
-              + রক্তদাতা হিসেবে যুক্ত হন
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setDonorModalMode('request');
+                  setDonorModalOpen(true);
+                }}
+                className="bg-white border border-rose-600 text-rose-700 hover:bg-rose-50 text-xs font-semibold px-3 py-2 rounded-lg shadow-2xs transition-colors inline-flex items-center gap-1.5"
+              >
+                <Heart className="w-3.5 h-3.5 fill-current" />
+                <span>জরুরি রক্তের আবেদন</span>
+              </button>
+              <button
+                onClick={() => {
+                  setDonorModalMode('register');
+                  setDonorModalOpen(true);
+                }}
+                className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-xs transition-colors self-start sm:self-auto"
+              >
+                + রক্তদাতা হিসেবে যুক্ত হন
+              </button>
+            </div>
           </div>
+
+          {/* 🚨 Active Emergency Blood Requests Banner & Grid */}
+          {bloodRequests.filter(r => r.status !== 'cancelled').length > 0 && (
+            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-rose-50 via-red-50/70 to-amber-50/50 border border-rose-200/90 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
+                  <span className="font-bold text-xs sm:text-sm text-rose-950">
+                    🚨 জরুরি রক্তের তাৎক্ষণিক প্রয়োজন ({bloodRequests.filter(r => r.status !== 'cancelled').length}টি সক্রিয় আবেদন)
+                  </span>
+                </div>
+                <Link href="/blood-requests" className="text-xs text-rose-700 font-bold hover:underline">
+                  সবগুলো আবেদন দেখুন →
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {bloodRequests
+                  .filter(r => r.status !== 'cancelled')
+                  .slice(0, 3)
+                  .map((req) => (
+                    <div
+                      key={req.id}
+                      className="bg-white border border-rose-200/90 rounded-xl p-3.5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-10 h-10 rounded-lg bg-rose-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0">
+                              {req.bloodGroup}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="font-bold text-xs text-slate-900 truncate">{req.patientNameBn}</p>
+                              <p className="text-[11px] text-slate-500 truncate">{req.upazilaNameBn} • {req.bagsNeeded} ব্যাগ</p>
+                            </div>
+                          </div>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800">
+                            জরুরি
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-slate-600 space-y-0.5 pt-1">
+                          <p className="truncate"><span className="text-slate-400">হাসপাতাল:</span> {req.hospitalNameBn}</p>
+                          <p className="truncate"><span className="text-slate-400">কারণ:</span> {req.problemDescription}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 pt-2 border-t border-slate-100">
+                        <a
+                          href={`tel:${req.contactNumber}`}
+                          className="w-full bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs active:scale-98"
+                        >
+                          <PhoneCall className="w-3 h-3" />
+                          <span>সরাসরি কল দিন: {req.contactNumber}</span>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Blood Group Filter Buttons */}
           <div className="flex flex-wrap gap-1.5 mb-4">
@@ -354,19 +595,33 @@ export default function HomePage() {
                     <span className="text-[11px] text-slate-500 truncate block">
                       {donor.upazilaNameBn} • {donor.areaBn}
                     </span>
+                    {donor.lastDonationDate && (
+                      <span className="text-[10px] text-rose-600 truncate block">
+                        সর্বশেষ: {donor.lastDonationDate}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-medium inline-block mb-1">
-                    প্রস্তুত
-                  </span>
-                  <button
-                    onClick={() => setDonorModalOpen(true)}
-                    className="text-[11px] text-rose-600 font-semibold hover:underline block"
-                  >
-                    অনুরোধ
-                  </button>
+                  {donor.availabilityStatus === 'available' ? (
+                    <>
+                      <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-medium inline-block mb-1">
+                        প্রস্তুত
+                      </span>
+                      <a
+                        href={`tel:${donor.phone || ''}`}
+                        className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold hover:underline"
+                      >
+                        <PhoneCall className="w-3 h-3 text-emerald-600" />
+                        <span>কল দিন</span>
+                      </a>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 font-medium inline-block">
+                      ব্যস্ত / অপ্রস্তুত
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -410,7 +665,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {COMMUNITY_REPORTS.slice(0, 3).map((rep) => (
+            {communityReports.slice(0, 3).map((rep) => (
               <div
                 key={rep.id}
                 className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-xl hover:bg-white hover:border-slate-300 transition-all flex flex-col justify-between"
@@ -439,6 +694,17 @@ export default function HomePage() {
                   <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
                     {rep.descriptionBn}
                   </p>
+
+                  {/* Render Images if available */}
+                  {rep.images && rep.images.length > 0 && (
+                    <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+                      {rep.images.map((img: string, i: number) => (
+                        <div key={i} className="w-14 h-10 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                          <img src={img} alt="প্রমাণ ছবি" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
@@ -493,7 +759,7 @@ export default function HomePage() {
 
           {/* Cards Grid: 3 most recent notices */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {LOST_NOTICES.slice(0, 3).map((notice) => {
+            {lostNotices.slice(0, 3).map((notice) => {
               const isLost = notice.type === 'lost';
               return (
                 <div
@@ -503,15 +769,20 @@ export default function HomePage() {
                   <div className="space-y-2.5">
                     {/* Top status badges */}
                     <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          isLost
-                            ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        }`}
-                      >
-                        {isLost ? '● হারানো' : '✓ কুড়িয়ে পাওয়া'}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                            isLost
+                              ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}
+                        >
+                          {isLost ? '● হারানো' : '✓ কুড়িয়ে পাওয়া'}
+                        </span>
+                        <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-medium border border-slate-200/50">
+                          {LOST_NOTICE_CATEGORY_LABELS[notice.category as keyof typeof LOST_NOTICE_CATEGORY_LABELS] || notice.categoryLabelBn || 'অন্যান্য'}
+                        </span>
+                      </div>
                       <span className="text-[11px] text-slate-400 font-mono">
                         {notice.date}
                       </span>
@@ -567,81 +838,10 @@ export default function HomePage() {
               href="/lost-and-found"
               className="text-emerald-700 font-semibold hover:underline flex items-center gap-1 self-start sm:self-auto"
             >
-              <span>সকল হারানো ও প্রাপ্তি বিজ্ঞপ্তি ড্যাশবোর্ড ({LOST_NOTICES.length}+)</span>
+              <span>সকল হারানো ও প্রাপ্তি বিজ্ঞপ্তি ড্যাশবোর্ড ({toBengaliNumber(lostNotices.length)}টি)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* 🏛️ SECTION: Popular Heritage Sites & Tourism */}
-      <section className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 mb-6 gap-2">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-semibold mb-1">
-              <Landmark className="w-3.5 h-3.5" />
-              <span>ইতিহাস, স্থাপত্য ও দর্শনীয় স্থান</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-heading font-extrabold text-slate-900 tracking-tight">
-              কুড়িগ্রামের দর্শনীয় ও ঐতিহাসিক নিদর্শন
-            </h2>
-          </div>
-          <Link
-            href="/heritage"
-            className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1 self-start sm:self-auto"
-          >
-            <span>সকল দর্শনীয় স্থান ({HERITAGE_SITES.length}+)</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {HERITAGE_SITES.slice(0, 3).map((site) => (
-            <article
-              key={site.id}
-              className="group bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg hover:border-emerald-500/50 transition-all flex flex-col justify-between"
-            >
-              <div>
-                <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                  <img
-                    src={site.mainImage}
-                    alt={site.nameBn}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <span className="absolute top-3 left-3 bg-slate-900/80 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-xs">
-                    {site.categoryLabelBn}
-                  </span>
-                  <span className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-xs">
-                    {site.upazilaNameBn}
-                  </span>
-                </div>
-
-                <div className="p-5">
-                  <Link href={`/heritage/${site.slug}`}>
-                    <h3 className="font-heading font-bold text-base text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug">
-                      {site.nameBn}
-                    </h3>
-                  </Link>
-                  <p className="text-xs text-slate-600 mt-2 line-clamp-2 leading-relaxed">
-                    {site.historyBn}
-                  </p>
-                </div>
-              </div>
-
-              <div className="px-5 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-slate-500 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="truncate max-w-[170px]">{site.addressBn}</span>
-                </span>
-                <Link
-                  href={`/heritage/${site.slug}`}
-                  className="text-emerald-700 font-semibold hover:underline"
-                >
-                  বিস্তারিত দেখুন
-                </Link>
-              </div>
-            </article>
-          ))}
         </div>
       </section>
 
@@ -671,7 +871,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {SCAM_ALERTS.slice(0, 2).map((scam) => (
+            {scamAlerts.slice(0, 2).map((scam) => (
               <div key={scam.id} className="bg-white p-4 sm:p-5 rounded-xl border border-amber-200 shadow-2xs">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
@@ -751,7 +951,10 @@ export default function HomePage() {
               জনসমস্যার তথ্য জানান
             </button>
             <button
-              onClick={() => setDonorModalOpen(true)}
+              onClick={() => {
+                setDonorModalMode('register');
+                setDonorModalOpen(true);
+              }}
               className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors"
             >
               রক্তদাতা হিসেবে যুক্ত হোন
@@ -764,12 +967,32 @@ export default function HomePage() {
       <ReportModal
         isOpen={reportModalOpen}
         onClose={() => setReportModalOpen(false)}
+        onSubmitSuccess={fetchReports}
       />
 
       {/* Donor Modal */}
       <DonorModal
         isOpen={donorModalOpen}
         onClose={() => setDonorModalOpen(false)}
+        mode={donorModalMode}
+        onSuccess={() => {
+          fetchDonors();
+          fetchBloodRequests();
+        }}
+      />
+
+      {/* Lost Notice Modal */}
+      <LostNoticeModal
+        isOpen={lostNoticeModalOpen}
+        onClose={() => setLostNoticeModalOpen(false)}
+        onSuccess={fetchLostNotices}
+      />
+
+      {/* Scam Alert Modal */}
+      <ScamAlertModal
+        isOpen={scamModalOpen}
+        onClose={() => setScamModalOpen(false)}
+        onSuccess={fetchScamAlerts}
       />
     </div>
   );
