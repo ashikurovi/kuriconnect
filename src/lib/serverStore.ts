@@ -14,6 +14,7 @@ export class DatabaseStore {
       name: 'প্রধান প্রশাসক (Admin)',
       email: 'admin@kuriconnect.org',
       phone: '01700000000',
+      nid: '19851234567890123',
       password: 'admin123',
       role: 'admin',
       createdAt: '2026-01-01'
@@ -23,6 +24,7 @@ export class DatabaseStore {
       name: 'কুড়িগ্রাম সাধারণ নাগরিক (User)',
       email: 'user@kuriconnect.org',
       phone: '01711111111',
+      nid: '19951234567890123',
       password: 'user123',
       role: 'user',
       createdAt: '2026-01-01'
@@ -34,7 +36,7 @@ export class DatabaseStore {
     const clean = identifier.trim().toLowerCase();
     const user = this.users.find(
       (u) =>
-        (u.phone === clean || (u.email && u.email.toLowerCase() === clean)) &&
+        (u.phone === clean || (u.email && u.email.toLowerCase() === clean) || (u.nid && u.nid === clean)) &&
         u.password === password
     );
     if (!user) return null;
@@ -45,24 +47,33 @@ export class DatabaseStore {
   async registerUser(data: {
     name: string;
     phone: string;
+    nid: string;
     email?: string;
     password: string;
     role?: 'admin' | 'user';
   }): Promise<{ user?: AuthUser; error?: string }> {
     const phone = data.phone.trim();
+    const nid = data.nid.trim();
     const email = data.email?.trim().toLowerCase();
 
     const existing = this.users.find(
-      (u) => u.phone === phone || (email && u.email && u.email.toLowerCase() === email)
+      (u) =>
+        u.phone === phone ||
+        (u.nid && u.nid === nid) ||
+        (email && u.email && u.email.toLowerCase() === email)
     );
     if (existing) {
-      return { error: 'এই মোবাইল নম্বর বা ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা আছে' };
+      if (existing.nid === nid) {
+        return { error: 'এই জাতীয় পরিচয়পত্র (NID) নম্বর দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা আছে।' };
+      }
+      return { error: 'এই মোবাইল নম্বর বা ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা আছে।' };
     }
 
     const newUser: StoredUser = {
       id: `usr-${Date.now()}`,
       name: data.name.trim(),
       phone,
+      nid,
       email: email || undefined,
       password: data.password,
       role: data.role === 'admin' ? 'admin' : 'user',

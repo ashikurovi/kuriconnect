@@ -7,12 +7,8 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAdmin: boolean;
-  authModalOpen: boolean;
-  authModalTab: 'login' | 'register';
-  openAuthModal: (tab?: 'login' | 'register') => void;
-  closeAuthModal: () => void;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string; user?: AuthUser }>;
-  register: (data: { name: string; phone: string; email?: string; password: string; role?: UserRole }) => Promise<{ success: boolean; message?: string; user?: AuthUser }>;
+  register: (data: { name: string; phone: string; nid: string; email?: string; password: string; role?: UserRole }) => Promise<{ success: boolean; message?: string; user?: AuthUser }>;
   logout: () => Promise<void>;
 }
 
@@ -21,8 +17,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
 
   // Load user from /api/auth/me or localStorage
   useEffect(() => {
@@ -52,15 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, []);
 
-  const openAuthModal = (tab: 'login' | 'register' = 'login') => {
-    setAuthModalTab(tab);
-    setAuthModalOpen(true);
-  };
-
-  const closeAuthModal = () => {
-    setAuthModalOpen(false);
-  };
-
   const login = async (identifier: string, password: string) => {
     try {
       const res = await fetch('/api/auth/login', {
@@ -72,7 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.success && data.user) {
         setUser(data.user);
         localStorage.setItem('kc_user', JSON.stringify(data.user));
-        closeAuthModal();
         return { success: true, message: data.message, user: data.user };
       }
       return { success: false, message: data.message || 'লগইন ব্যর্থ হয়েছে।' };
@@ -81,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (data: { name: string; phone: string; email?: string; password: string; role?: UserRole }) => {
+  const register = async (data: { name: string; phone: string; nid: string; email?: string; password: string; role?: UserRole }) => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -92,7 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (resData.success && resData.user) {
         setUser(resData.user);
         localStorage.setItem('kc_user', JSON.stringify(resData.user));
-        closeAuthModal();
         return { success: true, message: resData.message, user: resData.user };
       }
       return { success: false, message: resData.message || 'নিবন্ধন সম্পন্ন করা যায়নি।' };
@@ -118,10 +101,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isLoading,
         isAdmin: user?.role === 'admin',
-        authModalOpen,
-        authModalTab,
-        openAuthModal,
-        closeAuthModal,
         login,
         register,
         logout

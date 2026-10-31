@@ -9,13 +9,14 @@ import type { ScamAlert } from '@/types';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const isAdmin = searchParams.get('admin') === 'true';
+  const userId = searchParams.get('userId') ?? undefined;
 
   const list = await serverStore.getScamAlerts({
     severity: searchParams.get('severity') ?? undefined,
     category: searchParams.get('category') ?? undefined,
-    userId: searchParams.get('userId') ?? undefined,
+    userId,
     search: searchParams.get('search') ?? undefined,
-    approvedOnly: !isAdmin
+    approvedOnly: userId ? false : !isAdmin
   });
   return NextResponse.json({ success: true, count: list.length, data: list });
 }

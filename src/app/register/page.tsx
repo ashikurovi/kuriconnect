@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Lock, Phone, User, Mail, ArrowRight, AlertCircle, CheckCircle2, Home, LogIn, ShieldCheck } from 'lucide-react';
+import { Lock, Phone, User, Mail, CreditCard, ArrowRight, AlertCircle, CheckCircle2, Home, LogIn, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterPage() {
@@ -13,6 +13,7 @@ export default function RegisterPage() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [nid, setNid] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,7 +23,7 @@ export default function RegisterPage() {
   // If already logged in, redirect
   useEffect(() => {
     if (user) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [user, router]);
 
@@ -30,8 +31,14 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    if (!name.trim() || !phone.trim() || !password) {
-      setError('অনুগ্রহ করে নাম, মোবাইল নম্বর এবং পাসওয়ার্ড পূরণ করুন');
+    if (!name.trim() || !phone.trim() || !nid.trim() || !password) {
+      setError('অনুগ্রহ করে নাম, মোবাইল নম্বর, NID নম্বর এবং পাসওয়ার্ড পূরণ করুন');
+      return;
+    }
+
+    const cleanNid = nid.trim().replace(/[\s-]/g, '');
+    if (cleanNid.length < 10) {
+      setError('সঠিক জাতীয় পরিচয়পত্র (NID) নম্বর প্রদান করুন (১০, ১৩ বা ১৭ ডিজিট)');
       return;
     }
 
@@ -45,6 +52,7 @@ export default function RegisterPage() {
     const res = await register({
       name: name.trim(),
       phone: phone.trim(),
+      nid: cleanNid,
       email: email.trim() ? email.trim() : undefined,
       password,
       role: 'user'
@@ -54,8 +62,8 @@ export default function RegisterPage() {
     if (res.success) {
       setSuccessMsg('অভিনন্দন! আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। অপেক্ষা করুন...');
       setTimeout(() => {
-        router.push('/');
-      }, 1000);
+        router.push('/dashboard');
+      }, 900);
     } else {
       setError(res.message || 'নিবন্ধন সম্পন্ন করা যায়নি');
     }
@@ -139,6 +147,26 @@ export default function RegisterPage() {
 
             <div>
               <label className="font-semibold text-slate-700 block mb-1.5">
+                জাতীয় পরিচয়পত্র নম্বর (NID) <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={nid}
+                  onChange={(e) => setNid(e.target.value)}
+                  placeholder="১০, ১৩ বা ১৭ ডিজিটের NID নম্বর"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-800 focus:bg-white focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                />
+                <CreditCard className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                নাগরিক সেবা ও তথ্য ভেরিফিকেশনের জন্য NID নম্বর প্রদান বাধ্যতামূলক।
+              </p>
+            </div>
+
+            <div>
+              <label className="font-semibold text-slate-700 block mb-1.5">
                 ইমেইল ঠিকানা (ঐচ্ছিক)
               </label>
               <div className="relative">
@@ -211,3 +239,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

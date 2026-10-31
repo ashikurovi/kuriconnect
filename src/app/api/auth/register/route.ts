@@ -8,11 +8,19 @@ import { serverStore } from '@/lib/serverStore';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, email, password, role } = body;
+    const { name, phone, nid, email, password, role } = body;
 
-    if (!name || !phone || !password) {
+    if (!name || !phone || !nid || !password) {
       return NextResponse.json(
-        { success: false, message: 'পুরো নাম, মোবাইল নম্বর এবং পাসওয়ার্ড আবশ্যক।' },
+        { success: false, message: 'পুরো নাম, মোবাইল নম্বর, জাতীয় পরিচয়পত্র (NID) নম্বর এবং পাসওয়ার্ড আবশ্যক।' },
+        { status: 400 }
+      );
+    }
+
+    const cleanNid = nid.toString().trim().replace(/[\s-]/g, '');
+    if (cleanNid.length < 10) {
+      return NextResponse.json(
+        { success: false, message: 'সঠিক জাতীয় পরিচয়পত্র (NID) নম্বর প্রদান করুন (কমপক্ষে ১০ ডিজিট)।' },
         { status: 400 }
       );
     }
@@ -27,6 +35,7 @@ export async function POST(request: Request) {
     const result = await serverStore.registerUser({
       name,
       phone,
+      nid: cleanNid,
       email,
       password,
       role: role === 'admin' ? 'admin' : 'user'

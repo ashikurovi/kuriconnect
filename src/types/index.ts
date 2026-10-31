@@ -130,6 +130,7 @@ export interface AuthUser {
   name: string;
   email?: string;
   phone: string;
+  nid?: string;
   role: UserRole;
   avatarUrl?: string;
   createdAt: string;

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Lock, Phone, ArrowRight, AlertCircle, CheckCircle2, Sparkles, Home, UserPlus } from 'lucide-react';
+import { Lock, Phone, ArrowRight, AlertCircle, CheckCircle2, Home, UserPlus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
@@ -23,7 +23,7 @@ export default function LoginPage() {
       if (user.role === 'admin') {
         router.push('/admin');
       } else {
-        router.push('/');
+        router.push('/dashboard');
       }
     }
   }, [user, router]);
@@ -46,22 +46,11 @@ export default function LoginPage() {
         if (res.user?.role === 'admin') {
           router.push('/admin');
         } else {
-          router.push('/');
+          router.push('/dashboard');
         }
       }, 800);
     } else {
       setError(res.message || 'মোবাইল নম্বর/ইমেইল অথবা পাসওয়ার্ড সঠিক নয়');
-    }
-  };
-
-  const fillQuickDemo = (demoRole: 'admin' | 'user') => {
-    setError(null);
-    if (demoRole === 'admin') {
-      setIdentifier('admin@kuriconnect.org');
-      setPassword('admin123');
-    } else {
-      setIdentifier('01711111111');
-      setPassword('user123');
     }
   };
 
@@ -88,30 +77,6 @@ export default function LoginPage() {
             <p className="text-xs text-slate-500">
               রক্তের আবেদন, হারানো বিজ্ঞপ্তি ও নাগরিক সমস্যা জানাতে আপনার অ্যাকাউন্টে প্রবেশ করুন
             </p>
-          </div>
-
-          {/* Quick Demo Helper */}
-          <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-3.5 space-y-2 text-xs">
-            <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>দ্রুত টেস্ট লগইন করুন (One-Click Demo):</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickDemo('admin')}
-                className="bg-white hover:bg-emerald-100 border border-emerald-300 text-emerald-900 py-2 px-2.5 rounded-xl font-bold text-xs transition-all text-center shadow-2xs active:scale-95"
-              >
-                🛡️ অ্যাডমিন লগইন
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickDemo('user')}
-                className="bg-white hover:bg-emerald-100 border border-emerald-300 text-emerald-900 py-2 px-2.5 rounded-xl font-bold text-xs transition-all text-center shadow-2xs active:scale-95"
-              >
-                👤 নাগরিক লগইন
-              </button>
-            </div>
           </div>
 
           {/* Alert Messages */}
@@ -203,3 +168,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
