@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Lock, Phone, User, Mail, CreditCard, ArrowRight, AlertCircle, CheckCircle2, Home, LogIn, ShieldCheck } from 'lucide-react';
+import { Lock, Phone, User, Mail, CreditCard, ArrowRight, AlertCircle, CheckCircle2, Home, LogIn, ShieldCheck, MapPin } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { UPAZILAS } from '@/data/kurigramData';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,10 +16,16 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [nid, setNid] = useState('');
   const [email, setEmail] = useState('');
+  const [jela, setJela] = useState('কুড়িগ্রাম');
+  const [upazila, setUpazila] = useState('');
+  const [union, setUnion] = useState('');
+  const [gram, setGram] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const selectedUpazilaObj = UPAZILAS.find((u) => u.nameBn === upazila || u.id === upazila);
 
   // If already logged in, redirect
   useEffect(() => {
@@ -55,7 +62,11 @@ export default function RegisterPage() {
       nid: cleanNid,
       email: email.trim() ? email.trim() : undefined,
       password,
-      role: 'user'
+      role: 'user',
+      jela: jela.trim() || 'কুড়িগ্রাম',
+      upazila: upazila.trim() || undefined,
+      union: union.trim() || undefined,
+      gram: gram.trim() || undefined
     });
     setIsSubmitting(false);
 
@@ -71,7 +82,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 font-bengali">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         {/* Register Card */}
         <div className="bg-white border border-slate-200/90 rounded-3xl shadow-xl p-6 sm:p-8 space-y-6">
           {/* Logo & Heading */}
@@ -163,6 +174,95 @@ export default function RegisterPage() {
               <p className="text-[10px] text-slate-400 mt-1">
                 নাগরিক সেবা ও তথ্য ভেরিফিকেশনের জন্য NID নম্বর প্রদান বাধ্যতামূলক।
               </p>
+            </div>
+
+            {/* ঠিকানা (জেলা, উপজেলা, ইউনিয়ন, গ্রাম) */}
+            <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                <span>আপনার ঠিকানা (জেলা, উপজেলা, ইউনিয়ন, গ্রাম)</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    জেলা <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={jela}
+                    onChange={(e) => setJela(e.target.value)}
+                    placeholder="যেমন: কুড়িগ্রাম"
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    উপজেলা <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={upazila}
+                    onChange={(e) => {
+                      setUpazila(e.target.value);
+                      setUnion('');
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                  >
+                    <option value="">-- উপজেলা নির্বাচন করুন --</option>
+                    {UPAZILAS.map((u) => (
+                      <option key={u.id} value={u.nameBn}>
+                        {u.nameBn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    ইউনিয়ন / পৌরসভা
+                  </label>
+                  {selectedUpazilaObj && selectedUpazilaObj.unions.length > 0 ? (
+                    <select
+                      value={union}
+                      onChange={(e) => setUnion(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                    >
+                      <option value="">-- ইউনিয়ন নির্বাচন করুন --</option>
+                      {selectedUpazilaObj.unions.map((un) => (
+                        <option key={un} value={un}>
+                          {un}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={union}
+                      onChange={(e) => setUnion(e.target.value)}
+                      placeholder="ইউনিয়ন / ওয়ার্ড"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    গ্রাম / এলাকা / মহল্লা
+                  </label>
+                  <input
+                    type="text"
+                    value={gram}
+                    onChange={(e) => setGram(e.target.value)}
+                    placeholder="যেমন: কলেজ মোড়, করিমের খামার"
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                  />
+                </div>
+              </div>
             </div>
 
             <div>

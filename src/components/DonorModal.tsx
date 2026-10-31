@@ -55,6 +55,15 @@ export default function DonorModal({ isOpen, onClose, mode = 'register', onSucce
     setTodayDate(new Date().toISOString().split('T')[0]);
   }, []);
 
+  useEffect(() => {
+    if (user && isOpen) {
+      if (user.name && !donorNameBn) setDonorNameBn(user.name);
+      if (user.phone && !phone) setPhone(user.phone);
+      if (user.phone && !contactNumber) setContactNumber(user.phone);
+      if (user.gram && !areaBn) setAreaBn(user.gram);
+    }
+  }, [user, isOpen]);
+
   // OTP Step states: 'form' | 'otp' | 'success'
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [otpCode, setOtpCode] = useState('');

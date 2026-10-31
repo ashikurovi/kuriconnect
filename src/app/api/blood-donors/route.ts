@@ -64,15 +64,26 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { id, isApproved, availabilityStatus } = await request.json();
+    const body = await request.json();
+    const { id, isApproved, availabilityStatus, lastDonationDate, totalDonationsCount, emergencyAvailable, areaBn, unionNameBn, notes } = body;
     if (!id) {
       return NextResponse.json({ success: false, message: 'আইডি প্রয়োজন' }, { status: 400 });
     }
     const updated = await serverStore.updateBloodDonor(id, {
       isApproved,
-      availabilityStatus
+      availabilityStatus,
+      lastDonationDate,
+      totalDonationsCount,
+      emergencyAvailable,
+      areaBn,
+      unionNameBn,
+      notes
     });
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      message: 'রক্তদাতার তথ্য সফলভাবে আপডেট হয়েছে।'
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

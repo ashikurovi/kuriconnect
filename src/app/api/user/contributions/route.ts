@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { serverStore } from '@/lib/serverStore';
 
 export interface ContributionSummary {
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const phoneParam = searchParams.get('phone');
 
     if (!userId) {
       return NextResponse.json(
@@ -37,13 +39,33 @@ export async function GET(request: Request) {
       );
     }
 
+    // Try reading phone from auth cookie as fallback
+    let cookiePhone = '';
+    try {
+      const cookieStore = await cookies();
+      const userCookie = cookieStore.get('kc_user');
+      if (userCookie?.value) {
+        const parsed = JSON.parse(userCookie.value);
+        if (parsed?.phone) cookiePhone = parsed.phone;
+      }
+    } catch {}
+
     // Parallel fetch for the user
-    const [bloodRequests, scamAlerts, reports, lostNotices] = await Promise.all([
+    const [bloodRequests, scamAlerts, reports, lostNotices, userRecord] = await Promise.all([
       serverStore.getBloodRequests({ userId }),
       serverStore.getScamAlerts({ userId, approvedOnly: false }),
       serverStore.getReports({ userId }),
-      serverStore.getLostNotices({ userId })
+      serverStore.getLostNotices({ userId }),
+      serverStore.getUserById(userId)
     ]);
+
+    const effectivePhone = phoneParam || userRecord?.phone || cookiePhone;
+
+    // Check if user is registered as a blood donor with their phone number
+    let donorProfile = null;
+    if (effectivePhone) {
+      donorProfile = await serverStore.getDonorByPhone(effectivePhone, userId);
+    }
 
     // Point calculations
     const bloodPoints = bloodRequests.length * 20;
@@ -108,7 +130,8 @@ export async function GET(request: Request) {
         bloodRequests,
         scamAlerts,
         reports,
-        lostNotices
+        lostNotices,
+        donorProfile
       }
     });
   } catch (err: any) {

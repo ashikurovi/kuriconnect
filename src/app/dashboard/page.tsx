@@ -24,9 +24,26 @@ import {
   UserCheck,
   LogOut,
   RefreshCw,
-  Shield
+  Shield,
+  UserCog,
+  X,
+  Lock,
+  Mail,
+  Phone,
+  CreditCard,
+  User,
+  Droplet,
+  Heart,
+  Edit,
+  Activity,
+  Check
 } from 'lucide-react';
-import type { BloodRequest, LostNotice, CommunityReport, ScamAlert } from '@/types';
+import type { BloodRequest, LostNotice, CommunityReport, ScamAlert, BloodDonor } from '@/types';
+import DonorModal from '@/components/DonorModal';
+import ScamAlertModal from '@/components/ScamAlertModal';
+import ReportModal from '@/components/ReportModal';
+import LostNoticeModal from '@/components/LostNoticeModal';
+import { UPAZILAS } from '@/data/kurigramData';
 
 type TabType = 'all' | 'blood' | 'scam' | 'report' | 'lost';
 
@@ -59,12 +76,13 @@ interface ContributionData {
     scamAlerts: ScamAlert[];
     reports: CommunityReport[];
     lostNotices: LostNotice[];
+    donorProfile: BloodDonor | null;
   };
 }
 
 export default function UserDashboard() {
   const router = useRouter();
-  const { user, isLoading: authLoading, logout, isAdmin } = useAuth();
+  const { user, isLoading: authLoading, logout, updateProfile, isAdmin } = useAuth();
   
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,10 +90,186 @@ export default function UserDashboard() {
   const [showPointRules, setShowPointRules] = useState(false);
   const [contributionData, setContributionData] = useState<ContributionData | null>(null);
 
-  const fetchContributions = async (userId: string) => {
+  // Profile Edit State
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editNid, setEditNid] = useState('');
+  const [editJela, setEditJela] = useState('কুড়িগ্রাম');
+  const [editUpazila, setEditUpazila] = useState('');
+  const [editUnion, setEditUnion] = useState('');
+  const [editGram, setEditGram] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // New Submission Modals State
+  const [bloodModalOpen, setBloodModalOpen] = useState(false);
+  const [scamModalOpen, setScamModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [lostModalOpen, setLostModalOpen] = useState(false);
+
+  // Donor Profile State & Modal
+  const [donorRegisterModalOpen, setDonorRegisterModalOpen] = useState(false);
+  const [showDonorEditModal, setShowDonorEditModal] = useState(false);
+  const [donorAvailability, setDonorAvailability] = useState<'available' | 'busy' | 'recently_donated'>('available');
+  const [donorLastDate, setDonorLastDate] = useState('');
+  const [donorTotalDonations, setDonorTotalDonations] = useState(1);
+  const [donorEmergencyAvailable, setDonorEmergencyAvailable] = useState(true);
+  const [donorArea, setDonorArea] = useState('');
+  const [donorUnion, setDonorUnion] = useState('');
+  const [isUpdatingDonor, setIsUpdatingDonor] = useState(false);
+  const [donorUpdateMsg, setDonorUpdateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const openDonorEditModal = (donor: BloodDonor) => {
+    setDonorAvailability(donor.availabilityStatus || 'available');
+    setDonorLastDate(donor.lastDonationDate || '');
+    setDonorTotalDonations(donor.totalDonationsCount || 1);
+    setDonorEmergencyAvailable(donor.emergencyAvailable ?? true);
+    setDonorArea(donor.areaBn || '');
+    setDonorUnion(donor.unionNameBn || '');
+    setDonorUpdateMsg(null);
+    setShowDonorEditModal(true);
+  };
+
+  const handleDonorUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const donor = contributionData?.data?.donorProfile;
+    if (!donor) return;
+
+    setIsUpdatingDonor(true);
+    setDonorUpdateMsg(null);
+
+    try {
+      const res = await fetch('/api/blood-donors', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: donor.id,
+          availabilityStatus: donorAvailability,
+          lastDonationDate: donorLastDate || null,
+          totalDonationsCount: donorTotalDonations,
+          emergencyAvailable: donorEmergencyAvailable,
+          areaBn: donorArea,
+          unionNameBn: donorUnion
+        })
+      });
+      const data = await res.json();
+      setIsUpdatingDonor(false);
+
+      if (data.success) {
+        setDonorUpdateMsg({ type: 'success', text: 'রক্তদাতার প্রাপ্যতা ও তথ্য সফলভাবে আপডেট হয়েছে!' });
+        if (user?.id) fetchContributions(user.id);
+        setTimeout(() => {
+          setShowDonorEditModal(false);
+        }, 1200);
+      } else {
+        setDonorUpdateMsg({ type: 'error', text: data.message || 'আপডেট ব্যর্থ হয়েছে।' });
+      }
+    } catch {
+      setIsUpdatingDonor(false);
+      setDonorUpdateMsg({ type: 'error', text: 'সার্ভার সংযোগ সমস্যা।' });
+    }
+  };
+
+  const handleQuickAvailabilityChange = async (newStatus: 'available' | 'busy' | 'recently_donated') => {
+    const donor = contributionData?.data?.donorProfile;
+    if (!donor) return;
+
+    try {
+      const res = await fetch('/api/blood-donors', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: donor.id,
+          availabilityStatus: newStatus
+        })
+      });
+      const data = await res.json();
+      if (data.success && user?.id) {
+        fetchContributions(user.id);
+      }
+    } catch (err) {
+      console.error('Failed to change donor availability', err);
+    }
+  };
+
+  const openProfileModal = () => {
+    if (!user) return;
+    setEditName(user.name || '');
+    setEditPhone(user.phone || '');
+    setEditEmail(user.email || '');
+    setEditNid(user.nid || '');
+    setEditJela(user.jela || 'কুড়িগ্রাম');
+    setEditUpazila(user.upazila || '');
+    setEditUnion(user.union || '');
+    setEditGram(user.gram || '');
+    setCurrentPassword('');
+    setNewPassword('');
+    setShowPasswordChange(false);
+    setProfileMsg(null);
+    setShowProfileModal(true);
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileMsg(null);
+
+    if (!editName.trim() || !editPhone.trim()) {
+      setProfileMsg({ type: 'error', text: 'নাম ও মোবাইল নম্বর আবশ্যক।' });
+      return;
+    }
+
+    if (editNid && editNid.trim().replace(/[\s-]/g, '').length < 10) {
+      setProfileMsg({ type: 'error', text: 'সঠিক জাতীয় পরিচয়পত্র (NID) নম্বর দিন (কমপক্ষে ১০ ডিজিট)।' });
+      return;
+    }
+
+    if (showPasswordChange) {
+      if (!currentPassword) {
+        setProfileMsg({ type: 'error', text: 'বর্তমান পাসওয়ার্ড প্রদান করুন।' });
+        return;
+      }
+      if (!newPassword || newPassword.length < 4) {
+        setProfileMsg({ type: 'error', text: 'নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।' });
+        return;
+      }
+    }
+
+    setIsUpdatingProfile(true);
+    const res = await updateProfile({
+      name: editName.trim(),
+      phone: editPhone.trim(),
+      email: editEmail.trim() || undefined,
+      nid: editNid.trim() || undefined,
+      jela: editJela.trim() || 'কুড়িগ্রাম',
+      upazila: editUpazila.trim() || undefined,
+      union: editUnion.trim() || undefined,
+      gram: editGram.trim() || undefined,
+      currentPassword: showPasswordChange ? currentPassword : undefined,
+      newPassword: showPasswordChange ? newPassword : undefined
+    });
+    setIsUpdatingProfile(false);
+
+    if (res.success) {
+      setProfileMsg({ type: 'success', text: res.message || 'প্রোফাইল সফলভাবে আপডেট করা হয়েছে!' });
+      setTimeout(() => {
+        setShowProfileModal(false);
+      }, 1200);
+    } else {
+      setProfileMsg({ type: 'error', text: res.message || 'প্রোফাইল আপডেট ব্যর্থ হয়েছে।' });
+    }
+  };
+
+  const fetchContributions = async (userId: string, userPhone?: string) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/user/contributions?userId=${encodeURIComponent(userId)}`);
+      const targetPhone = userPhone || user?.phone || '';
+      const phoneParam = targetPhone ? `&phone=${encodeURIComponent(targetPhone)}` : '';
+      const res = await fetch(`/api/user/contributions?userId=${encodeURIComponent(userId)}${phoneParam}`);
       const json = await res.json();
       if (json.success) {
         setContributionData(json);
@@ -90,7 +284,7 @@ export default function UserDashboard() {
   useEffect(() => {
     if (!authLoading) {
       if (user?.id) {
-        fetchContributions(user.id);
+        fetchContributions(user.id, user.phone);
       } else {
         setLoading(false);
       }
@@ -290,11 +484,28 @@ export default function UserDashboard() {
                     <span> • এনআইডি: <span className="font-mono text-slate-700 font-medium">{user.nid.length > 6 ? `${user.nid.slice(0, 3)}****${user.nid.slice(-3)}` : user.nid}</span></span>
                   )}
                 </p>
+                {(user.upazila || user.union || user.gram || user.jela) && (
+                  <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>
+                      {[user.gram, user.union, user.upazila, user.jela || 'কুড়িগ্রাম'].filter(Boolean).join(', ')}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center gap-2 self-start sm:self-auto">
+            <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+              <button
+                onClick={openProfileModal}
+                className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-2xs"
+                title="প্রোফাইল তথ্য ও পাসওয়ার্ড পরিবর্তন"
+              >
+                <UserCog className="w-3.5 h-3.5 text-emerald-700" />
+                <span>প্রোফাইল আপডেট</span>
+              </button>
+
               <button
                 onClick={() => user?.id && fetchContributions(user.id)}
                 className="p-2 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-slate-100 transition-colors"
@@ -329,6 +540,143 @@ export default function UserDashboard() {
       </section>
 
       <main className="max-w-6xl mx-auto px-4 pt-6 space-y-6">
+        {/* Blood Donor Hero Profile Section (If user is a registered blood donor or invite) */}
+        {contributionData?.data?.donorProfile ? (
+          (() => {
+            const donor = contributionData.data.donorProfile;
+            const isAvailable = donor.availabilityStatus === 'available';
+            const isBusy = donor.availabilityStatus === 'busy';
+            const isRecentlyDonated = donor.availabilityStatus === 'recently_donated';
+
+            return (
+              <section className="bg-gradient-to-r from-rose-50 via-white to-red-50/40 rounded-2xl border border-rose-200/90 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  {/* Left: Donor Identity & Blood Group */}
+                  <div className="flex items-start sm:items-center gap-4">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-rose-600 to-red-700 text-white flex flex-col items-center justify-center shrink-0 shadow-sm border-2 border-white">
+                      <Droplet className="w-4 h-4 fill-white" />
+                      <span className="text-xl sm:text-2xl font-black leading-none mt-0.5">{donor.bloodGroup}</span>
+                    </div>
+
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Heart className="w-3 h-3 fill-rose-600 text-rose-600" />
+                          <span>নিবন্ধিত রক্তদাতা</span>
+                        </span>
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
+                          donor.isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {donor.isApproved ? 'যাচাইকৃত রক্তদাতা' : 'অনুমোদন প্রক্রিয়াধীন'}
+                        </span>
+                        {donor.emergencyAvailable && (
+                          <span className="text-[10px] font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded-full border border-red-200 animate-pulse">
+                            জরুরি সেবায় প্রস্তুত
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
+                        {donor.donorNameBn}
+                        <span className="text-xs text-slate-500 font-normal ml-2">
+                          (মোবাইল: {donor.phone})
+                        </span>
+                      </h3>
+
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1.5">
+                        <span>মোট রক্তদান: <strong className="text-slate-900">{donor.totalDonationsCount || 1} বার</strong></span>
+                        <span>•</span>
+                        <span>শেষ রক্তদান: <strong className="text-slate-900">{donor.lastDonationDate || 'উল্লেখ নেই'}</strong></span>
+                        <span>•</span>
+                        <span>এলাকা: <strong className="text-slate-900">{donor.areaBn || donor.upazilaNameBn}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Availability Toggle & Edit Button */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 md:pt-0 border-t md:border-t-0 border-rose-100">
+                    {/* Quick Availability Selector */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-1 flex items-center shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickAvailabilityChange('available')}
+                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          isAvailable
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-emerald-700 hover:bg-slate-50'
+                        }`}
+                        title="রক্তদানের জন্য প্রস্তুত"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-white' : 'bg-emerald-500'}`} />
+                        <span>প্রস্তুত</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleQuickAvailabilityChange('recently_donated')}
+                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          isRecentlyDonated
+                            ? 'bg-blue-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-blue-700 hover:bg-slate-50'
+                        }`}
+                        title="সম্প্রতি রক্ত দিয়েছি (বিশ্রামে আছি)"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isRecentlyDonated ? 'bg-white' : 'bg-blue-500'}`} />
+                        <span>সম্প্রতি দিয়েছি</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleQuickAvailabilityChange('busy')}
+                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          isBusy
+                            ? 'bg-amber-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-amber-700 hover:bg-slate-50'
+                        }`}
+                        title="আপাতত দিতে অপরাগ"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isBusy ? 'bg-white' : 'bg-amber-500'}`} />
+                        <span>ব্যস্ত</span>
+                      </button>
+                    </div>
+
+                    {/* Edit Details Button */}
+                    <button
+                      type="button"
+                      onClick={() => openDonorEditModal(donor)}
+                      className="inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-xs transition-colors shrink-0"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                      <span>রক্তদাতার তথ্য পরিবর্তন</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+            );
+          })()
+        ) : (
+          /* Invitation Card if user is not yet a donor */
+          <section className="bg-gradient-to-r from-rose-50/70 via-white to-rose-50/40 rounded-2xl border border-rose-200/80 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <Heart className="w-6 h-6 fill-rose-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">আপনি কি রক্তদাতা হিসেবে কুড়িগ্রামবাসীর পাশে দাঁড়াতে চান?</h4>
+                <p className="text-xs text-slate-500 mt-0.5">রক্তদাতা হিসেবে তালিকাভুক্ত হলে যেকোনো জরুরি মুহূর্তে রোগীর জীবন বাঁচাতে ডাক পেতে পারেন।</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDonorRegisterModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs shrink-0 active:scale-95 self-start sm:self-auto"
+            >
+              <Droplet className="w-3.5 h-3.5 fill-white" />
+              <span>+ রক্তদাতা হিসেবে যুক্ত হন</span>
+            </button>
+          </section>
+        )}
+
         {/* Gamified Citizen Points & Tier Card */}
         <section className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -511,30 +859,34 @@ export default function UserDashboard() {
             <span>নতুন আবেদন বা পোস্ট যুক্ত করুন:</span>
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/blood-requests"
-              className="bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1"
+            <button
+              type="button"
+              onClick={() => setBloodModalOpen(true)}
+              className="bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1 shadow-2xs active:scale-95"
             >
               <span>+ রক্তের আবেদন</span>
-            </Link>
-            <Link
-              href="/scam-alerts"
-              className="bg-white hover:bg-amber-50 text-amber-700 border border-slate-200 hover:border-amber-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1"
+            </button>
+            <button
+              type="button"
+              onClick={() => setScamModalOpen(true)}
+              className="bg-white hover:bg-amber-50 text-amber-700 border border-slate-200 hover:border-amber-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1 shadow-2xs active:scale-95"
             >
               <span>+ প্রতারণা সতর্কতা</span>
-            </Link>
-            <Link
-              href="/reports#submit"
-              className="bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1"
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportModalOpen(true)}
+              className="bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1 shadow-2xs active:scale-95"
             >
               <span>+ নাগরিক সমস্যা</span>
-            </Link>
-            <Link
-              href="/lost-and-found"
-              className="bg-white hover:bg-teal-50 text-teal-700 border border-slate-200 hover:border-teal-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1"
+            </button>
+            <button
+              type="button"
+              onClick={() => setLostModalOpen(true)}
+              className="bg-white hover:bg-teal-50 text-teal-700 border border-slate-200 hover:border-teal-200 px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1 shadow-2xs active:scale-95"
             >
               <span>+ হারানো বিজ্ঞপ্তি</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -623,22 +975,18 @@ export default function UserDashboard() {
                     : 'আপনি এখনও এই বিভাগে কোনো আবেদন বা তথ্য পোস্ট করেননি। নতুন পোস্ট যুক্ত করে নাগরিক পয়েন্ট সংগ্রহ করুন।'}
                 </p>
                 <div className="inline-flex items-center gap-2">
-                  <Link
-                    href={
-                      activeTab === 'blood'
-                        ? '/blood-requests'
-                        : activeTab === 'scam'
-                        ? '/scam-alerts'
-                        : activeTab === 'report'
-                        ? '/reports#submit'
-                        : activeTab === 'lost'
-                        ? '/lost-and-found'
-                        : '/reports#submit'
-                    }
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-2xs"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeTab === 'blood') setBloodModalOpen(true);
+                      else if (activeTab === 'scam') setScamModalOpen(true);
+                      else if (activeTab === 'lost') setLostModalOpen(true);
+                      else setReportModalOpen(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-2xs active:scale-95"
                   >
                     + নতুন পোস্ট করুন
-                  </Link>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -707,6 +1055,484 @@ export default function UserDashboard() {
           </div>
         </section>
       </main>
+
+      {/* Profile Edit Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full shadow-2xl p-6 sm:p-7 relative max-h-[90vh] overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setShowProfileModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                <UserCog className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">নাগরিক প্রোফাইল আপডেট</h3>
+                <p className="text-xs text-slate-500">আপনার নাম, ফোন নম্বর, এনআইডি এবং পাসওয়ার্ড পরিবর্তন করুন</p>
+              </div>
+            </div>
+
+            {/* Alert Messages */}
+            {profileMsg && (
+              <div
+                className={`mb-4 p-3 rounded-xl border text-xs flex items-center gap-2 ${
+                  profileMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                {profileMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                <span>{profileMsg.text}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleProfileSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  আপনার পুরো নাম <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="আপনার নাম লিখুন..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-800 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  মোবাইল নম্বর <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    required
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="০১৭১১-২২৩৩৪৪"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-800 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  জাতীয় পরিচয়পত্র (NID) নম্বর <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={editNid}
+                    onChange={(e) => setEditNid(e.target.value)}
+                    placeholder="১০, ১৩ অথবা ১৭ ডিজিটের NID নম্বর"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-800 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                  <CreditCard className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  ইমেইল ঠিকানা (ঐচ্ছিক)
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-800 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
+
+              {/* ঠিকানা (জেলা, উপজেলা, ইউনিয়ন, গ্রাম) */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>ঠিকানা (জেলা, উপজেলা, ইউনিয়ন, গ্রাম)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">জেলা</label>
+                    <input
+                      type="text"
+                      value={editJela}
+                      onChange={(e) => setEditJela(e.target.value)}
+                      placeholder="যেমন: কুড়িগ্রাম"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">উপজেলা</label>
+                    <select
+                      value={editUpazila}
+                      onChange={(e) => {
+                        setEditUpazila(e.target.value);
+                        setEditUnion('');
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                    >
+                      <option value="">-- উপজেলা নির্বাচন করুন --</option>
+                      {UPAZILAS.map((u) => (
+                        <option key={u.id} value={u.nameBn}>
+                          {u.nameBn}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">ইউনিয়ন / পৌরসভা</label>
+                    {(() => {
+                      const selUpazila = UPAZILAS.find((u) => u.nameBn === editUpazila || u.id === editUpazila);
+                      if (selUpazila && selUpazila.unions.length > 0) {
+                        return (
+                          <select
+                            value={editUnion}
+                            onChange={(e) => setEditUnion(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                          >
+                            <option value="">-- ইউনিয়ন নির্বাচন করুন --</option>
+                            {selUpazila.unions.map((un) => (
+                              <option key={un} value={un}>
+                                {un}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      }
+                      return (
+                        <input
+                          type="text"
+                          value={editUnion}
+                          onChange={(e) => setEditUnion(e.target.value)}
+                          placeholder="ইউনিয়ন বা ওয়ার্ডের নাম"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                        />
+                      );
+                    })()}
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">গ্রাম / এলাকা</label>
+                    <input
+                      type="text"
+                      value={editGram}
+                      onChange={(e) => setEditGram(e.target.value)}
+                      placeholder="যেমন: কলেজ মোড়, তালুক শিমুলবাড়ি"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Change password toggle */}
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordChange(!showPasswordChange)}
+                  className="text-emerald-700 font-bold hover:underline flex items-center gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>{showPasswordChange ? 'পাসওয়ার্ড পরিবর্তন বাতিল করুন' : 'পাসওয়ার্ড পরিবর্তন করতে চান?'}</span>
+                </button>
+              </div>
+
+              {showPasswordChange && (
+                <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200 animate-in fade-in">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">
+                      বর্তমান পাসওয়ার্ড <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="বর্তমান পাসওয়ার্ড লিখুন"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">
+                      নতুন পাসওয়ার্ড <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="কমপক্ষে ৪ অক্ষরের নতুন পাসওয়ার্ড"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 font-semibold hover:bg-slate-100 transition-colors"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingProfile}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl transition-all shadow-xs disabled:opacity-50"
+                >
+                  {isUpdatingProfile ? 'সংরক্ষণ করা হচ্ছে...' : 'পরিবর্তন সংরক্ষণ করুন'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4 Action Submission Modals */}
+      <DonorModal
+        isOpen={bloodModalOpen}
+        mode="request"
+        onClose={() => setBloodModalOpen(false)}
+        onSuccess={() => {
+          setBloodModalOpen(false);
+          if (user?.id) fetchContributions(user.id);
+        }}
+      />
+
+      <ScamAlertModal
+        isOpen={scamModalOpen}
+        onClose={() => setScamModalOpen(false)}
+        onSuccess={() => {
+          setScamModalOpen(false);
+          if (user?.id) fetchContributions(user.id);
+        }}
+      />
+
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        onSubmitSuccess={() => {
+          setReportModalOpen(false);
+          if (user?.id) fetchContributions(user.id);
+        }}
+      />
+
+      <LostNoticeModal
+        isOpen={lostModalOpen}
+        onClose={() => setLostModalOpen(false)}
+        onSuccess={() => {
+          setLostModalOpen(false);
+          if (user?.id) fetchContributions(user.id);
+        }}
+      />
+
+      {/* Donor Profile Edit Modal */}
+      {showDonorEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full shadow-2xl p-6 sm:p-7 relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowDonorEditModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                <Droplet className="w-5 h-5 fill-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">রক্তদাতার প্রাপ্যতা ও তথ্য আপডেট</h3>
+                <p className="text-xs text-slate-500">আপনার রক্তদানের প্রাপ্যতা ও তথ্যাবলি পরিবর্তন করুন</p>
+              </div>
+            </div>
+
+            {donorUpdateMsg && (
+              <div
+                className={`mb-4 p-3 rounded-xl border text-xs flex items-center gap-2 ${
+                  donorUpdateMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                {donorUpdateMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                <span>{donorUpdateMsg.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleDonorUpdateSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1.5">
+                  বর্তমান রক্তদানের প্রাপ্যতা স্ট্যাটাস <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDonorAvailability('available')}
+                    className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                      donorAvailability === 'available'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span>প্রস্তুত</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDonorAvailability('recently_donated')}
+                    className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                      donorAvailability === 'recently_donated'
+                        ? 'border-blue-500 bg-blue-50 text-blue-800 ring-2 ring-blue-500/20'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <span>সম্প্রতি দিয়েছি</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDonorAvailability('busy')}
+                    className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                      donorAvailability === 'busy'
+                        ? 'border-amber-500 bg-amber-50 text-amber-800 ring-2 ring-amber-500/20'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    <span>ব্যস্ত</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  শেষ রক্তদানের তারিখ
+                </label>
+                <input
+                  type="date"
+                  value={donorLastDate}
+                  onChange={(e) => setDonorLastDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:bg-white focus:border-rose-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  মোট রক্তদানের সংখ্যা (বার)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={donorTotalDonations}
+                  onChange={(e) => setDonorTotalDonations(Number(e.target.value) || 1)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:bg-white focus:border-rose-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    ইউনিয়ন / ওয়ার্ড
+                  </label>
+                  <input
+                    type="text"
+                    value={donorUnion}
+                    onChange={(e) => setDonorUnion(e.target.value)}
+                    placeholder="যেমন: ভোগডাঙ্গা"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:bg-white focus:border-rose-600 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    গ্রাম বা মহল্লার নাম
+                  </label>
+                  <input
+                    type="text"
+                    value={donorArea}
+                    onChange={(e) => setDonorArea(e.target.value)}
+                    placeholder="যেমন: কলেজ মোড়"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-800 focus:bg-white focus:border-rose-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer bg-rose-50/70 p-3 rounded-xl border border-rose-200/80">
+                  <input
+                    type="checkbox"
+                    checked={donorEmergencyAvailable}
+                    onChange={(e) => setDonorEmergencyAvailable(e.target.checked)}
+                    className="rounded text-rose-600 focus:ring-rose-500 w-4 h-4"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block">জরুরি প্রয়োজনে যেকোনো সময় কল গ্রহণ করব</span>
+                    <span className="text-[10px] text-slate-500">জরুরি রোগীদের জন্য ২৪ ঘণ্টা তালিকাভুক্ত থাকবেন</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowDonorEditModal(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 font-semibold hover:bg-slate-100 transition-colors"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingDonor}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2 rounded-xl transition-all shadow-xs disabled:opacity-50"
+                >
+                  {isUpdatingDonor ? 'সংরক্ষণ করা হচ্ছে...' : 'পরিবর্তন সংরক্ষণ করুন'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Donor Registration Modal for users wanting to register as blood donor */}
+      <DonorModal
+        isOpen={donorRegisterModalOpen}
+        mode="register"
+        onClose={() => setDonorRegisterModalOpen(false)}
+        onSuccess={() => {
+          setDonorRegisterModalOpen(false);
+          if (user?.id) fetchContributions(user.id);
+        }}
+      />
     </div>
   );
 }

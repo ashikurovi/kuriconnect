@@ -6,6 +6,27 @@ export interface StoredUser extends AuthUser {
   password: string;
 }
 
+let schemaMigrationPromise: Promise<void> | null = null;
+async function ensureUserIdColumns() {
+  if (!schemaMigrationPromise) {
+    schemaMigrationPromise = (async () => {
+      try {
+        await db.query(`ALTER TABLE blood_requests ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+      } catch {}
+      try {
+        await db.query(`ALTER TABLE lost_notices ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+      } catch {}
+      try {
+        await db.query(`ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+      } catch {}
+      try {
+        await db.query(`ALTER TABLE scam_alerts ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+      } catch {}
+    })();
+  }
+  return schemaMigrationPromise;
+}
+
 export class DatabaseStore {
   // In-memory persistent users for both admin & regular citizens
   private users: StoredUser[] = [
@@ -51,6 +72,10 @@ export class DatabaseStore {
     email?: string;
     password: string;
     role?: 'admin' | 'user';
+    jela?: string;
+    upazila?: string;
+    union?: string;
+    gram?: string;
   }): Promise<{ user?: AuthUser; error?: string }> {
     const phone = data.phone.trim();
     const nid = data.nid.trim();
@@ -77,6 +102,10 @@ export class DatabaseStore {
       email: email || undefined,
       password: data.password,
       role: data.role === 'admin' ? 'admin' : 'user',
+      jela: data.jela?.trim() || 'কুড়িগ্রাম',
+      upazila: data.upazila?.trim() || undefined,
+      union: data.union?.trim() || undefined,
+      gram: data.gram?.trim() || undefined,
       createdAt: new Date().toISOString()
     };
     this.users.unshift(newUser);
@@ -90,6 +119,85 @@ export class DatabaseStore {
     if (!user) return null;
     const { password: _, ...safeUser } = user;
     return safeUser;
+  }
+
+  async updateUserProfile(userId: string, data: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    nid?: string;
+    jela?: string;
+    upazila?: string;
+    union?: string;
+    gram?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<{ user?: AuthUser; error?: string }> {
+    const userIndex = this.users.findIndex((u) => u.id === userId);
+    if (userIndex === -1) {
+      return { error: 'ব্যবহারকারী পাওয়া যায়নি।' };
+    }
+
+    const targetUser = this.users[userIndex];
+
+    // If changing password, verify current password
+    if (data.newPassword) {
+      if (!data.currentPassword) {
+        return { error: 'পাসওয়ার্ড পরিবর্তনের জন্য বর্তমান পাসওয়ার্ড লিখতে হবে।' };
+      }
+      if (targetUser.password !== data.currentPassword) {
+        return { error: 'বর্তমান পাসওয়ার্ডটি সঠিক নয়।' };
+      }
+      if (data.newPassword.length < 4) {
+        return { error: 'নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।' };
+      }
+      targetUser.password = data.newPassword;
+    }
+
+    // Check duplicate phone on other users
+    if (data.phone && data.phone.trim() !== targetUser.phone) {
+      const exists = this.users.find((u) => u.id !== userId && u.phone === data.phone?.trim());
+      if (exists) return { error: 'এই মোবাইল নম্বরটি অন্য একটি অ্যাকাউন্টে ব্যবহৃত হয়েছে।' };
+      targetUser.phone = data.phone.trim();
+    }
+
+    // Check duplicate email on other users
+    if (data.email && data.email.trim().toLowerCase() !== (targetUser.email || '')) {
+      const cleanEmail = data.email.trim().toLowerCase();
+      const exists = this.users.find((u) => u.id !== userId && u.email?.toLowerCase() === cleanEmail);
+      if (exists) return { error: 'এই ইমেইলটি অন্য একটি অ্যাকাউন্টে ব্যবহৃত হয়েছে।' };
+      targetUser.email = cleanEmail;
+    }
+
+    // Check duplicate nid on other users
+    if (data.nid && data.nid.trim() !== (targetUser.nid || '')) {
+      const cleanNid = data.nid.trim().replace(/[\s-]/g, '');
+      if (cleanNid.length < 10) {
+        return { error: 'সঠিক জাতীয় পরিচয়পত্র (NID) নম্বর প্রদান করুন (কমপক্ষে ১০ ডিজিট)।' };
+      }
+      const exists = this.users.find((u) => u.id !== userId && u.nid === cleanNid);
+      if (exists) return { error: 'এই জাতীয় পরিচয়পত্র নম্বরটি অন্য একটি অ্যাকাউন্টে ব্যবহৃত হয়েছে।' };
+      targetUser.nid = cleanNid;
+    }
+
+    if (data.name && data.name.trim()) {
+      targetUser.name = data.name.trim();
+    }
+    if (data.jela !== undefined) {
+      targetUser.jela = data.jela.trim() || undefined;
+    }
+    if (data.upazila !== undefined) {
+      targetUser.upazila = data.upazila.trim() || undefined;
+    }
+    if (data.union !== undefined) {
+      targetUser.union = data.union.trim() || undefined;
+    }
+    if (data.gram !== undefined) {
+      targetUser.gram = data.gram.trim() || undefined;
+    }
+
+    const { password: _, ...safeUser } = targetUser;
+    return { user: safeUser };
   }
 
   async getAllUsers(): Promise<AuthUser[]> {
@@ -243,6 +351,30 @@ export class DatabaseStore {
         setClauses.push(`availability_status = $${idx++}`);
         values.push(updates.availabilityStatus);
       }
+      if (updates.lastDonationDate !== undefined) {
+        setClauses.push(`last_donation_date = $${idx++}`);
+        values.push(updates.lastDonationDate || null);
+      }
+      if (updates.totalDonationsCount !== undefined) {
+        setClauses.push(`total_donations_count = $${idx++}`);
+        values.push(Number(updates.totalDonationsCount) || 1);
+      }
+      if (updates.emergencyAvailable !== undefined) {
+        setClauses.push(`emergency_available = $${idx++}`);
+        values.push(updates.emergencyAvailable);
+      }
+      if (updates.areaBn !== undefined) {
+        setClauses.push(`area_bn = $${idx++}`);
+        values.push(updates.areaBn);
+      }
+      if (updates.unionNameBn !== undefined) {
+        setClauses.push(`union_name_bn = $${idx++}`);
+        values.push(updates.unionNameBn);
+      }
+      if (updates.notes !== undefined) {
+        setClauses.push(`notes = $${idx++}`);
+        values.push(updates.notes);
+      }
 
       if (setClauses.length > 0) {
         values.push(id);
@@ -250,9 +382,139 @@ export class DatabaseStore {
       }
 
       const rows = await db.query<any>(`SELECT * FROM blood_donors WHERE id = $1`, [id]);
-      return rows[0] || null;
+      if (!rows || rows.length === 0) return null;
+      const r = rows[0];
+      return {
+        id: r.id,
+        donorNameBn: r.donor_name_bn,
+        donorNameEn: r.donor_name_en,
+        bloodGroup: r.blood_group,
+        upazilaId: r.upazila_id,
+        upazilaNameBn: r.upazila_name_bn,
+        unionNameBn: r.union_name_bn,
+        areaBn: r.area_bn,
+        phone: r.phone,
+        contactNumberMasked: r.contact_number_masked,
+        directContactAvailable: r.direct_contact_available,
+        lastDonationDate: r.last_donation_date,
+        availabilityStatus: r.availability_status || 'available',
+        isVerified: r.is_verified,
+        isApproved: r.is_approved ?? false,
+        verifiedDate: r.verified_date,
+        registeredSince: r.registered_since,
+        totalDonationsCount: r.total_donations_count,
+        emergencyAvailable: r.emergency_available,
+        notes: r.notes
+      } as BloodDonor;
     } catch (err) {
       console.error('updateBloodDonor error:', err);
+      return null;
+    }
+  }
+
+  async getDonorByPhone(phone: string, userId?: string): Promise<BloodDonor | null> {
+    if (!phone && !userId) return null;
+
+    // Convert Bengali numerals to English and extract digits
+    const bnToEnMap: Record<string, string> = {
+      '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+      '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+    };
+    const enToBnMap: Record<string, string> = {
+      '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
+      '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
+    };
+
+    const cleanInput = (phone || '').replace(/[০-৯]/g, (d) => bnToEnMap[d] || d);
+    const digitsOnly = cleanInput.replace(/\D/g, '');
+    const last10 = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+    const last8 = digitsOnly.length >= 8 ? digitsOnly.slice(-8) : digitsOnly;
+    const bnLast10 = last10.replace(/[0-9]/g, (d) => enToBnMap[d] || d);
+    const bnLast8 = last8.replace(/[0-9]/g, (d) => enToBnMap[d] || d);
+
+    try {
+      // 1. Direct SQL check with patterns
+      const searchTerms: string[] = [];
+      if (last10) searchTerms.push(`%${last10}%`);
+      if (bnLast10 && bnLast10 !== last10) searchTerms.push(`%${bnLast10}%`);
+      if (last8 && last8 !== last10) searchTerms.push(`%${last8}%`);
+      if (bnLast8 && bnLast8 !== bnLast10) searchTerms.push(`%${bnLast8}%`);
+
+      if (searchTerms.length > 0) {
+        const placeholders = searchTerms.map((_, i) => `phone LIKE $${i + 1}`).join(' OR ');
+        const rows = await db.query<any>(
+          `SELECT * FROM blood_donors WHERE ${placeholders} LIMIT 1`,
+          searchTerms
+        );
+
+        if (rows && rows.length > 0) {
+          const r = rows[0];
+          return {
+            id: r.id,
+            donorNameBn: r.donor_name_bn,
+            donorNameEn: r.donor_name_en,
+            bloodGroup: r.blood_group,
+            upazilaId: r.upazila_id,
+            upazilaNameBn: r.upazila_name_bn,
+            unionNameBn: r.union_name_bn,
+            areaBn: r.area_bn,
+            phone: r.phone,
+            contactNumberMasked: r.contact_number_masked,
+            directContactAvailable: r.direct_contact_available,
+            lastDonationDate: r.last_donation_date,
+            availabilityStatus: r.availability_status || 'available',
+            isVerified: r.is_verified,
+            isApproved: r.is_approved ?? false,
+            verifiedDate: r.verified_date,
+            registeredSince: r.registered_since,
+            totalDonationsCount: r.total_donations_count,
+            emergencyAvailable: r.emergency_available,
+            notes: r.notes
+          } as BloodDonor;
+        }
+      }
+
+      // 2. Fallback: inspect rows in JavaScript for maximum normalization tolerance
+      const allDonors = await db.query<any>(`SELECT * FROM blood_donors LIMIT 300`);
+      if (allDonors && allDonors.length > 0) {
+        const matched = allDonors.find((r: any) => {
+          if (!r.phone) return false;
+          const rowEnDigits = r.phone.replace(/[০-৯]/g, (d: string) => bnToEnMap[d] || d).replace(/\D/g, '');
+          if (last10 && rowEnDigits.includes(last10)) return true;
+          if (last8 && rowEnDigits.includes(last8)) return true;
+          return false;
+        });
+
+        if (matched) {
+          const r = matched;
+          return {
+            id: r.id,
+            donorNameBn: r.donor_name_bn,
+            donorNameEn: r.donor_name_en,
+            bloodGroup: r.blood_group,
+            upazilaId: r.upazila_id,
+            upazilaNameBn: r.upazila_name_bn,
+            unionNameBn: r.union_name_bn,
+            areaBn: r.area_bn,
+            phone: r.phone,
+            contactNumberMasked: r.contact_number_masked,
+            directContactAvailable: r.direct_contact_available,
+            lastDonationDate: r.last_donation_date,
+            availabilityStatus: r.availability_status || 'available',
+            isVerified: r.is_verified,
+            isApproved: r.is_approved ?? false,
+            verifiedDate: r.verified_date,
+            registeredSince: r.registered_since,
+            totalDonationsCount: r.total_donations_count,
+            emergencyAvailable: r.emergency_available,
+            notes: r.notes
+          } as BloodDonor;
+        }
+      }
+
+      return null;
+    } catch (err) {
+      console.error('DatabaseStore.getDonorByPhone error:', err);
       return null;
     }
   }
@@ -268,6 +530,7 @@ export class DatabaseStore {
 
   // ===================== BLOOD REQUESTS (জরুরি রক্তের আবেদন) =====================
   async getBloodRequests(params?: { status?: string; upazilaId?: string; bloodGroup?: string; userId?: string; limit?: number }) {
+    await ensureUserIdColumns();
     try {
       let query = `SELECT * FROM blood_requests WHERE 1=1`;
       const values: any[] = [];
@@ -311,7 +574,13 @@ export class DatabaseStore {
         status: r.status,
         createdAt: r.created_at
       })) as BloodRequest[];
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === '42703' || String(err?.message || '').includes('user_id')) {
+        try {
+          await db.query(`ALTER TABLE blood_requests ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+        } catch {}
+        if (params?.userId) return [];
+      }
       console.error('DatabaseStore.getBloodRequests error:', err);
       return [];
     }
@@ -426,6 +695,7 @@ export class DatabaseStore {
 
   // ===================== COMMUNITY REPORTS =====================
   async getReports(params?: { status?: string; upazilaId?: string; category?: string; userId?: string; search?: string; limit?: number }) {
+    await ensureUserIdColumns();
     try {
       let query = `SELECT * FROM community_reports WHERE 1=1`;
       const values: any[] = [];
@@ -479,7 +749,13 @@ export class DatabaseStore {
         upvotesCount: r.upvotes_count || 1,
         images: r.images || []
       })) as CommunityReport[];
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === '42703' || String(err?.message || '').includes('user_id')) {
+        try {
+          await db.query(`ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+        } catch {}
+        if (params?.userId) return [];
+      }
       console.error('DatabaseStore.getReports error:', err);
       return [];
     }
@@ -638,6 +914,7 @@ export class DatabaseStore {
 
   // ===================== LOST & FOUND =====================
   async getLostNotices(params?: { type?: string; status?: string; upazilaId?: string; category?: string; userId?: string; search?: string; limit?: number }) {
+    await ensureUserIdColumns();
     try {
       let query = `SELECT * FROM lost_notices WHERE 1=1`;
       const values: any[] = [];
@@ -705,7 +982,13 @@ export class DatabaseStore {
         status: r.status,
         isVerified: r.is_verified
       })) as unknown as LostNotice[];
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === '42703' || String(err?.message || '').includes('user_id')) {
+        try {
+          await db.query(`ALTER TABLE lost_notices ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+        } catch {}
+        if (params?.userId) return [];
+      }
       console.error('DatabaseStore.getLostNotices error:', err);
       return [];
     }
@@ -867,6 +1150,7 @@ export class DatabaseStore {
     limit?: number;
     approvedOnly?: boolean;
   }) {
+    await ensureUserIdColumns();
     try {
       let query = `SELECT * FROM scam_alerts WHERE 1=1`;
       const values: any[] = [];
@@ -918,7 +1202,13 @@ export class DatabaseStore {
         publishedDate: r.published_date,
         isApproved: r.is_approved ?? false
       })) as ScamAlert[];
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === '42703' || String(err?.message || '').includes('user_id')) {
+        try {
+          await db.query(`ALTER TABLE scam_alerts ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+        } catch {}
+        if (params?.userId) return [];
+      }
       console.error('DatabaseStore.getScamAlerts error:', err);
       return [];
     }

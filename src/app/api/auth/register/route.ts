@@ -3,12 +3,12 @@ import { serverStore } from '@/lib/serverStore';
 
 /**
  * POST /api/auth/register
- * Body: { name, phone, email, password, role?: 'admin' | 'user' }
+ * Body: { name, phone, nid, email, password, role?: 'admin' | 'user', jela?: string, upazila?: string, union?: string, gram?: string }
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, nid, email, password, role } = body;
+    const { name, phone, nid, email, password, role, jela, upazila, union, gram } = body;
 
     if (!name || !phone || !nid || !password) {
       return NextResponse.json(
@@ -38,7 +38,11 @@ export async function POST(request: Request) {
       nid: cleanNid,
       email,
       password,
-      role: role === 'admin' ? 'admin' : 'user'
+      role: role === 'admin' ? 'admin' : 'user',
+      jela: jela || 'কুড়িগ্রাম',
+      upazila: upazila || undefined,
+      union: union || undefined,
+      gram: gram || undefined
     });
 
     if (result.error || !result.user) {

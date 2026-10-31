@@ -8,7 +8,30 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   login: (identifier: string, password: string) => Promise<{ success: boolean; message?: string; user?: AuthUser }>;
-  register: (data: { name: string; phone: string; nid: string; email?: string; password: string; role?: UserRole }) => Promise<{ success: boolean; message?: string; user?: AuthUser }>;
+  register: (data: {
+    name: string;
+    phone: string;
+    nid: string;
+    email?: string;
+    password: string;
+    role?: UserRole;
+    jela?: string;
+    upazila?: string;
+    union?: string;
+    gram?: string;
+  }) => Promise<{ success: boolean; message?: string; user?: AuthUser }>;
+  updateProfile: (data: {
+    name: string;
+    phone: string;
+    nid?: string;
+    email?: string;
+    jela?: string;
+    upazila?: string;
+    union?: string;
+    gram?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => Promise<{ success: boolean; message?: string; user?: AuthUser }>;
   logout: () => Promise<void>;
 }
 
@@ -65,7 +88,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (data: { name: string; phone: string; nid: string; email?: string; password: string; role?: UserRole }) => {
+  const register = async (data: {
+    name: string;
+    phone: string;
+    nid: string;
+    email?: string;
+    password: string;
+    role?: UserRole;
+    jela?: string;
+    upazila?: string;
+    union?: string;
+    gram?: string;
+  }) => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -79,6 +113,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true, message: resData.message, user: resData.user };
       }
       return { success: false, message: resData.message || 'নিবন্ধন সম্পন্ন করা যায়নি।' };
+    } catch {
+      return { success: false, message: 'সার্ভারের সাথে সংযোগ বিচ্ছিন্ন হয়েছে।' };
+    }
+  };
+
+  const updateProfile = async (data: {
+    name: string;
+    phone: string;
+    nid?: string;
+    email?: string;
+    jela?: string;
+    upazila?: string;
+    union?: string;
+    gram?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => {
+    try {
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, userId: user?.id })
+      });
+      const resData = await res.json();
+      if (resData.success && resData.user) {
+        setUser(resData.user);
+        localStorage.setItem('kc_user', JSON.stringify(resData.user));
+        return { success: true, message: resData.message, user: resData.user };
+      }
+      return { success: false, message: resData.message || 'প্রোফাইল আপডেট করা যায়নি।' };
     } catch {
       return { success: false, message: 'সার্ভারের সাথে সংযোগ বিচ্ছিন্ন হয়েছে।' };
     }
@@ -103,6 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin: user?.role === 'admin',
         login,
         register,
+        updateProfile,
         logout
       }}
     >
