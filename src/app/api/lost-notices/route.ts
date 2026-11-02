@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       contactPhone: body.contactPhone,
       gdNumber: body.gdNumber,
       rewardBn: body.rewardBn,
+      images: Array.isArray(body.images) ? body.images : []
     });
     return NextResponse.json({ success: true, data: newNotice }, { status: 201 });
   } catch (err: any) {

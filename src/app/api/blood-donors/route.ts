@@ -7,14 +7,15 @@ export async function GET(request: Request) {
   const bloodGroup = searchParams.get('bloodGroup') || undefined;
   const upazilaId = searchParams.get('upazilaId') || undefined;
   const search = searchParams.get('search') || undefined;
-  // If 'all' is passed (from admin panel), show all. Otherwise only show approved donors on public pages
-  const isAdmin = searchParams.get('admin') === 'true';
+  const approvedOnlyParam = searchParams.get('approvedOnly');
+  // Only filter strictly approved if explicitly asked via approvedOnly=true
+  const approvedOnly = approvedOnlyParam === 'true';
 
   const list = await serverStore.getBloodDonors({
     bloodGroup,
     upazilaId,
     search,
-    approvedOnly: !isAdmin
+    approvedOnly
   });
 
   return NextResponse.json({

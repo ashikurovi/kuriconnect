@@ -28,10 +28,17 @@ export default function ReportsPage() {
   const [upvotedIds, setUpvotedIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem('kc_upvoted_reports');
+      if (cached) {
+        setUpvotedIds(JSON.parse(cached));
+      }
+    } catch {}
+
     fetch('/api/reports')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) {
+        if (data.success && Array.isArray(data.data)) {
           setReports(data.data);
         }
       })
@@ -39,12 +46,35 @@ export default function ReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleUpvote = (id: string) => {
+  const handleUpvote = async (id: string) => {
     if (upvotedIds[id]) return;
-    setUpvotedIds((prev) => ({ ...prev, [id]: true }));
+
+    // Optimistic UI update
+    const updatedMap = { ...upvotedIds, [id]: true };
+    setUpvotedIds(updatedMap);
+    try {
+      localStorage.setItem('kc_upvoted_reports', JSON.stringify(updatedMap));
+    } catch {}
+
     setReports((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, upvotesCount: r.upvotesCount + 1 } : r))
+      prev.map((r) => (r.id === id ? { ...r, upvotesCount: (r.upvotesCount || 0) + 1 } : r))
     );
+
+    try {
+      const res = await fetch('/api/reports/upvote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (data.success && typeof data.upvotesCount === 'number') {
+        setReports((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, upvotesCount: data.upvotesCount } : r))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to upvote report:', err);
+    }
   };
 
   const handleNewReport = (newReport: CommunityReport) => {
@@ -242,14 +272,16 @@ export default function ReportsPage() {
 
               <button
                 onClick={() => handleUpvote(report.id)}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                disabled={upvotedIds[report.id]}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold transition-all ${
                   upvotedIds[report.id]
-                    ? 'bg-green-100 text-[#14532d] border border-green-300'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    ? 'bg-emerald-100 text-[#14532d] border border-emerald-300 cursor-default'
+                    : 'bg-gray-100 hover:bg-emerald-50 hover:text-[#14532d] text-gray-700 cursor-pointer'
                 }`}
+                title={upvotedIds[report.id] ? 'আপনি ইতোমধ্যে সমর্থন জানিয়েছেন' : 'গুরুত্ব সমর্থন জানান'}
               >
-                <ThumbsUp className="w-3.5 h-3.5" />
-                <span>গুরুত্ব সমর্থন ({report.upvotesCount})</span>
+                <ThumbsUp className={`w-3.5 h-3.5 ${upvotedIds[report.id] ? 'fill-current text-[#14532d]' : ''}`} />
+                <span>গুরুত্ব সমর্থন ({report.upvotesCount || 0})</span>
               </button>
             </div>
           </div>

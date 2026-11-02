@@ -7,6 +7,7 @@ import {
 } from '@/data/kurigramData';
 import { LostNotice, UpazilaId } from '@/types';
 import LostNoticeModal from '@/components/LostNoticeModal';
+import { useAuth } from '@/context/AuthContext';
 import {
   Search,
   Filter,
@@ -25,18 +26,24 @@ import {
   ShieldCheck,
   User,
   HelpCircle,
-  Layers
+  Layers,
+  Clock,
+  Check,
+  RefreshCw
 } from 'lucide-react';
 
 export default function LostAndFoundPage() {
+  const { user } = useAuth();
   const [notices, setNotices] = useState<LostNotice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'lost' | 'found'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'resolved'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedUpazila, setSelectedUpazila] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const fetchNotices = () => {
     setLoading(true);
@@ -88,11 +95,36 @@ export default function LostAndFoundPage() {
       notice.locationDetailsBn.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesType = selectedType === 'all' || notice.type === selectedType;
+    const matchesStatus = selectedStatus === 'all' || (notice.status || 'active') === selectedStatus;
     const matchesCategory = selectedCategory === 'all' || notice.category === selectedCategory;
     const matchesUpazila = selectedUpazila === 'all' || notice.upazilaId === selectedUpazila;
 
-    return matchesSearch && matchesType && matchesCategory && matchesUpazila;
+    return matchesSearch && matchesType && matchesStatus && matchesCategory && matchesUpazila;
   });
+
+  const handleToggleStatus = async (notice: LostNotice) => {
+    const nextStatus = notice.status === 'resolved' ? 'active' : 'resolved';
+    const confirmMsg =
+      nextStatus === 'resolved'
+        ? 'আপনি কি নিশ্চিত যে জিনিসটি পাওয়া গেছে এবং বিজ্ঞপ্তিটি "পাওয়া গেছে / সমাধান হয়েছে" হিসেবে চিহ্নিত করতে চান?'
+        : 'আপনি কি বিজ্ঞপ্তিটি পুনরায় সক্রিয় (খোঁজ চলছে) হিসেবে পরিবর্তন করতে চান?';
+    if (!confirm(confirmMsg)) return;
+
+    // Optimistic UI update
+    setNotices((prev) =>
+      prev.map((n) => (n.id === notice.id ? { ...n, status: nextStatus } : n))
+    );
+
+    try {
+      await fetch('/api/lost-notices', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: notice.id, status: nextStatus }),
+      });
+    } catch (err) {
+      console.error('Failed to update notice status:', err);
+    }
+  };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,20 +299,58 @@ export default function LostAndFoundPage() {
           </div>
 
           {/* Upazila Filter Dropdown */}
-          <div className="shrink-0 flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={selectedUpazila}
-              onChange={(e) => setSelectedUpazila(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg py-1 px-2.5 text-xs text-slate-700 font-medium focus:bg-white focus:border-emerald-500 transition-all"
-            >
-              <option value="all">সকল উপজেলা (৯টি)</option>
-              {UPAZILAS.map((up) => (
-                <option key={up.id} value={up.id}>
-                  {up.nameBn}
-                </option>
-              ))}
-            </select>
+          <div className="shrink-0 flex items-center gap-2 flex-wrap">
+            {/* Status Filter Toggle */}
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
+              <button
+                onClick={() => setSelectedStatus('all')}
+                className={`px-2.5 py-1 rounded-md transition-all ${
+                  selectedStatus === 'all'
+                    ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                সকল অবস্থা
+              </button>
+              <button
+                onClick={() => setSelectedStatus('active')}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
+                  selectedStatus === 'active'
+                    ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                    : 'text-slate-600 hover:text-amber-700'
+                }`}
+              >
+                <Clock className="w-3 h-3" />
+                <span>সন্ধান চলছে</span>
+              </button>
+              <button
+                onClick={() => setSelectedStatus('resolved')}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 ${
+                  selectedStatus === 'resolved'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                    : 'text-slate-600 hover:text-emerald-700'
+                }`}
+              >
+                <CheckCircle2 className="w-3 h-3" />
+                <span>পাওয়া গেছে</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={selectedUpazila}
+                onChange={(e) => setSelectedUpazila(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-lg py-1 px-2.5 text-xs text-slate-700 font-medium focus:bg-white focus:border-emerald-500 transition-all"
+              >
+                <option value="all">সকল উপজেলা (৯টি)</option>
+                {UPAZILAS.map((up) => (
+                  <option key={up.id} value={up.id}>
+                    {up.nameBn}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -289,10 +359,11 @@ export default function LostAndFoundPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between text-xs text-slate-500 px-1">
           <span>মোট প্রদর্শিত বিজ্ঞপ্তি: <strong className="text-slate-800 font-bold">{filteredNotices.length}টি</strong></span>
-          {(selectedType !== 'all' || selectedCategory !== 'all' || selectedUpazila !== 'all' || searchQuery) && (
+          {(selectedType !== 'all' || selectedStatus !== 'all' || selectedCategory !== 'all' || selectedUpazila !== 'all' || searchQuery) && (
             <button
               onClick={() => {
                 setSelectedType('all');
+                setSelectedStatus('all');
                 setSelectedCategory('all');
                 setSelectedUpazila('all');
                 setSearchQuery('');
@@ -312,23 +383,46 @@ export default function LostAndFoundPage() {
                 className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs hover:shadow-md hover:border-emerald-500/50 transition-all flex flex-col justify-between"
               >
                 <div>
-                  {/* Top Badges */}
+                  {/* Top Badges: Type, Category & Resolution Status */}
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1 ${
-                        notice.type === 'lost'
-                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                          : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${notice.type === 'lost' ? 'bg-rose-600' : 'bg-emerald-600'}`} />
-                      <span>{notice.type === 'lost' ? 'হারানো বিজ্ঞপ্তি' : 'কুড়িয়ে পাওয়া'}</span>
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1 ${
+                          notice.type === 'lost'
+                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                            : 'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${notice.type === 'lost' ? 'bg-rose-600' : 'bg-blue-600'}`} />
+                        <span>{notice.type === 'lost' ? 'হারানো বিজ্ঞপ্তি' : 'কুড়িয়ে পাওয়া'}</span>
+                      </span>
 
-                    <span className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md font-medium">
-                      {categoryLabels[notice.category] || notice.categoryLabelBn || 'অন্যান্য'}
-                    </span>
+                      <span className="text-[10px] text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md font-medium">
+                        {categoryLabels[notice.category] || notice.categoryLabelBn || 'অন্যান্য'}
+                      </span>
+                    </div>
+
+                    {/* 🟢 Resolution Status Badge (পাওয়া গেছে নাকি সন্ধান চলছে) */}
+                    {notice.status === 'resolved' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span>পাওয়া গেছে</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                        <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                        <span>সন্ধান চলছে</span>
+                      </span>
+                    )}
                   </div>
+
+                  {/* Resolution Banner if resolved */}
+                  {notice.status === 'resolved' && (
+                    <div className="mb-3 bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="font-semibold text-[11px]">জিনিসটি পাওয়া গেছে / সমাধান সম্পন্ন হয়েছে</span>
+                    </div>
+                  )}
 
                   {/* Title */}
                   <h3 className="font-heading font-bold text-base text-slate-900 leading-snug mb-2">
@@ -339,6 +433,26 @@ export default function LostAndFoundPage() {
                   <p className="text-xs text-slate-600 leading-relaxed mb-3.5 line-clamp-3">
                     {notice.descriptionBn}
                   </p>
+
+                  {/* Attached Images */}
+                  {notice.images && notice.images.length > 0 && (
+                    <div className="mb-3.5">
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        {notice.images.map((img, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setPreviewImage(img)}
+                            className="relative rounded-lg overflow-hidden border border-slate-200 aspect-video w-20 shrink-0 hover:opacity-90 hover:ring-2 hover:ring-emerald-500 transition-all cursor-pointer bg-slate-100"
+                            title="বড় করে দেখুন"
+                          >
+                            <img src={img} alt="বিজ্ঞপ্তির ছবি" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-slate-400">ছবি বড় করে দেখতে ক্লিক করুন</span>
+                    </div>
+                  )}
 
                   {/* Reward Banner if announced */}
                   {notice.rewardBn && (
@@ -377,21 +491,54 @@ export default function LostAndFoundPage() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {/* Toggle status button for creator or admin */}
+                    {user && (user.id === notice.userId || user.phone === notice.contactPhone || user.role === 'admin') && (
+                      <button
+                        onClick={() => handleToggleStatus(notice)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                          notice.status === 'resolved'
+                            ? 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                        }`}
+                        title="স্ট্যাটাস পরিবর্তন করুন"
+                      >
+                        {notice.status === 'resolved' ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 text-slate-500" />
+                            <span>পুনরায় খুঁজুন</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span>পাওয়া গেছে মার্ক করুন</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
                     <button
-                      onClick={() => copyToClipboard(`${notice.titleBn}\nযোগাযোগ: ${notice.contactPhone}`)}
+                      onClick={() => copyToClipboard(`${notice.titleBn}\nস্ট্যাটাস: ${notice.status === 'resolved' ? 'পাওয়া গেছে' : 'সন্ধান চলছে'}\nযোগাযোগ: ${notice.contactPhone}`)}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
                       title="বিজ্ঞপ্তি তথ্য কপি করুন"
                     >
                       <Share2 className="w-4 h-4" />
                     </button>
-                    <a
-                      href={`tel:${notice.contactPhone}`}
-                      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-colors"
-                    >
-                      <PhoneCall className="w-3 h-3" />
-                      <span>কল দিন</span>
-                    </a>
+
+                    {notice.status !== 'resolved' ? (
+                      <a
+                        href={`tel:${notice.contactPhone}`}
+                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-colors"
+                      >
+                        <PhoneCall className="w-3 h-3" />
+                        <span>কল দিন</span>
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>পাওয়া গেছে</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </article>
@@ -447,6 +594,24 @@ export default function LostAndFoundPage() {
         onClose={() => setModalOpen(false)}
         onSuccess={fetchNotices}
       />
+
+      {/* 🖼️ Image Lightbox Modal */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+        >
+          <div className="relative max-w-2xl max-h-[90vh] bg-transparent" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-slate-300 p-1 cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img src={previewImage} alt="বিজ্ঞপ্তির ছবি" className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

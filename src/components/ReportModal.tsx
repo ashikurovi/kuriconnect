@@ -10,13 +10,14 @@ interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmitSuccess?: (newReport: any) => void;
+  defaultUpazilaId?: UpazilaId;
 }
 
-export default function ReportModal({ isOpen, onClose, onSubmitSuccess }: ReportModalProps) {
+export default function ReportModal({ isOpen, onClose, onSubmitSuccess, defaultUpazilaId }: ReportModalProps) {
   const { user } = useAuth();
   const [titleBn, setTitleBn] = useState('');
   const [category, setCategory] = useState('damaged-road');
-  const [upazilaId, setUpazilaId] = useState<UpazilaId>('kurigram-sadar');
+  const [upazilaId, setUpazilaId] = useState<UpazilaId>(defaultUpazilaId || 'kurigram-sadar');
   const [locationDetailsBn, setLocationDetailsBn] = useState('');
   const [descriptionBn, setDescriptionBn] = useState('');
   const [reporterName, setReporterName] = useState('');
@@ -26,6 +27,12 @@ export default function ReportModal({ isOpen, onClose, onSubmitSuccess }: Report
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (defaultUpazilaId) {
+      setUpazilaId(defaultUpazilaId);
+    }
+  }, [defaultUpazilaId, isOpen]);
 
   if (!isOpen) return null;
 

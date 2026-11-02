@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import SiteLayoutWrapper from '@/components/SiteLayoutWrapper';
 
@@ -29,6 +30,16 @@ export default function RootLayout({
   return (
     <html lang="bn" className="scroll-smooth">
       <body className="min-h-screen bg-[#f8fafc] text-slate-900 font-bengali selection:bg-emerald-500 selection:text-white antialiased">
+        {/* Google AdSense Script */}
+        {process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID && (
+          <Script
+            id="google-adsense"
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         <SiteLayoutWrapper>{children}</SiteLayoutWrapper>
       </body>
     </html>

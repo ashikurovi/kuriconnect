@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, PlusCircle, CheckCircle2, Loader2, FileQuestion, MapPin, Phone, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, PlusCircle, CheckCircle2, Loader2, FileQuestion, MapPin, Phone, Calendar, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { UPAZILAS } from '@/data/kurigramData';
 import { useAuth } from '@/context/AuthContext';
 import type { LostNotice, UpazilaId } from '@/types';
@@ -25,6 +25,8 @@ export default function LostNoticeModal({ isOpen, onClose, onSuccess }: LostNoti
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     type: 'lost' as 'lost' | 'found',
@@ -45,6 +47,37 @@ export default function LostNoticeModal({ isOpen, onClose, onSuccess }: LostNoti
       setFormData((prev) => ({ ...prev, date: new Date().toISOString().split('T')[0] }));
     }
   }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const remainingSlots = 4 - images.length;
+    const fileList = Array.from(files).slice(0, remainingSlots);
+
+    fileList.forEach((file) => {
+      if (file.size > 2 * 1024 * 1024) {
+        alert(`${file.name} ফাইলটি ২MB-এর বেশি। অনুগ্রহ করে ছোট আকারের ছবি নির্বাচন করুন।`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImages((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   if (!isOpen) return null;
 
@@ -74,7 +107,8 @@ export default function LostNoticeModal({ isOpen, onClose, onSuccess }: LostNoti
           contactName: formData.contactName,
           contactPhone: formData.contactPhone,
           gdNumber: formData.gdNumber.trim() ? formData.gdNumber : undefined,
-          rewardBn: formData.rewardBn.trim() ? formData.rewardBn : undefined
+          rewardBn: formData.rewardBn.trim() ? formData.rewardBn : undefined,
+          images
         })
       });
 
@@ -84,6 +118,7 @@ export default function LostNoticeModal({ isOpen, onClose, onSuccess }: LostNoti
         if (onSuccess) onSuccess();
         setTimeout(() => {
           setSubmitSuccess(false);
+          setImages([]);
           onClose();
           setFormData({
             type: 'lost',
@@ -325,6 +360,55 @@ export default function LostNoticeModal({ isOpen, onClose, onSuccess }: LostNoti
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:bg-white focus:border-indigo-600 font-mono"
                 />
               </div>
+            </div>
+
+            {/* 📸 Multi-image Upload Section */}
+            <div className="pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>হারানো বা প্রাপ্ত জিনিসের ছবি (ঐচ্ছিক, সর্বোচ্চ ৪টি)</span>
+                </label>
+                <span className="text-[11px] text-slate-400 font-mono">{images.length}/৪টি ছবি</span>
+              </div>
+
+              {/* Image Previews */}
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative group rounded-xl overflow-hidden aspect-video border border-slate-200 bg-slate-100">
+                    <img src={img} alt={`সংযুক্ত ছবি ${idx + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-rose-600 text-white p-1 rounded-full opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      title="ছবি মুছুন"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+
+                {images.length < 4 && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/40 rounded-xl aspect-video flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-indigo-700 transition-all cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4 text-indigo-600" />
+                    <span className="text-[10px] font-medium">+ ছবি যোগ</span>
+                  </button>
+                )}
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <p className="text-[10px] text-slate-400">আইডি কার্ড, ডকুমেন্টস বা হারানো জিনিসের স্পষ্ট ছবি যুক্ত করুন (প্রতিটি সর্বোচ্চ ২MB)।</p>
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">

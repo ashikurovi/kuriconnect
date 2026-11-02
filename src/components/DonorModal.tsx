@@ -270,7 +270,7 @@ export default function DonorModal({ isOpen, onClose, mode = 'register', onSucce
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
               {mode === 'register'
-                ? 'আপনার মোবাইল নম্বরটি সফলভাবে ওটিপি দ্বারা যাচাইকৃত হয়েছে। অ্যাডমিন অনুমোদনের পর রক্তদাতা তালিকায় প্রদর্শিত হবে।'
+                ? 'আপনার মোবাইল নম্বরটি ওটিপি দ্বারা সফলভাবে যাচাই করা হয়েছে এবং রক্তদাতা তালিকায় সরাসরি যুক্ত করা হয়েছে!'
                 : 'আপনার রক্তের আবেদনটি তাৎক্ষণিকভাবে অনুমোদিত হয়ে সরাসরি ওয়েবসাইটে প্রকাশিত হয়েছে। রক্তদাতারা সরাসরি আপনাকে কল করতে পারবেন।'}
             </p>
           </div>
@@ -529,7 +529,7 @@ export default function DonorModal({ isOpen, onClose, mode = 'register', onSucce
             <div className="bg-rose-50 border border-rose-200/80 p-3 rounded-xl text-xs text-rose-900 flex items-start gap-2.5">
               <Shield className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
               <div className="leading-relaxed">
-                <strong>নিরাপত্তা ও ওটিপি যাচাই:</strong> ভুয়া এন্ট্রি রোধ করতে রক্তদাতা হিসেবে যোগদানের পূর্বে আপনার মোবাইল নম্বরে ওটিপি পাঠানো হবে।
+                <strong>নিরাপত্তা ও ওটিপি যাচাই:</strong> ভুয়া এন্ট্রি রোধ করতে রক্তদাতা হিসেবে যোগদানের পূর্বে আপনার মোবাইল নম্বরে ওটিপি পাঠানো হবে। ওটিপি যাচাই সম্পন্ন হলেই আপনার তথ্য সরাসরি রক্তদাতা তালিকায় যুক্ত হবে, কোনো অনুমোদনের প্রয়োজন নেই।
               </div>
             </div>
 

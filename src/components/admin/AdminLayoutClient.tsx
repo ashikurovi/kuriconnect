@@ -4,7 +4,28 @@ import React, { Suspense } from 'react';
 import { AdminProvider, useAdmin } from './AdminContext';
 import AdminSidebar from './AdminSidebar';
 import AdminNavbar from './AdminNavbar';
-import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import AdminLoginView from './AdminLoginView';
+import { useAuth } from '@/context/AuthContext';
+import { CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react';
+
+function AdminAuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading, isAdmin } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#070e17] flex flex-col items-center justify-center text-slate-300 font-bengali space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <p className="text-xs text-slate-400">অ্যাডমিন এক্সেস যাচাই করা হচ্ছে...</p>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return <AdminLoginView />;
+  }
+
+  return <>{children}</>;
+}
 
 function AdminContentShell({ children }: { children: React.ReactNode }) {
   const { isSidebarCollapsed, quickAlert } = useAdmin();
@@ -60,10 +81,12 @@ function AdminContentShell({ children }: { children: React.ReactNode }) {
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-900 text-white flex items-center justify-center text-sm">লোড হচ্ছে...</div>}>
-      <AdminProvider>
-        <AdminContentShell>{children}</AdminContentShell>
-      </AdminProvider>
+    <Suspense fallback={<div className="min-h-screen bg-[#070e17] text-white flex items-center justify-center text-sm font-bengali">লোড হচ্ছে...</div>}>
+      <AdminAuthGuard>
+        <AdminProvider>
+          <AdminContentShell>{children}</AdminContentShell>
+        </AdminProvider>
+      </AdminAuthGuard>
     </Suspense>
   );
 }

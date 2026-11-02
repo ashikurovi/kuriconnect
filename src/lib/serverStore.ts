@@ -17,10 +17,27 @@ async function ensureUserIdColumns() {
         await db.query(`ALTER TABLE lost_notices ADD COLUMN IF NOT EXISTS user_id TEXT;`);
       } catch {}
       try {
+        await db.query(`ALTER TABLE lost_notices ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT ARRAY[]::TEXT[];`);
+      } catch {}
+      try {
         await db.query(`ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS user_id TEXT;`);
       } catch {}
       try {
         await db.query(`ALTER TABLE scam_alerts ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+      } catch {}
+      try {
+        await db.query(`ALTER TABLE blood_donors ADD COLUMN IF NOT EXISTS user_id TEXT;`);
+      } catch {}
+      try {
+        await db.query(`ALTER TABLE blood_donors ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
+      } catch {}
+      // Remove any default seeded mock donors so only real user registered data is displayed
+      try {
+        await db.query(`DELETE FROM blood_donors WHERE id IN ('donor-1', 'donor-2', 'donor-3', 'donor-4', 'donor-5', 'donor-6', 'donor-7', 'donor-8') OR donor_name_bn IN ('মোঃ রফিকুল ইসলাম', 'তানভীর আহমেদ', 'শাহিনা আক্তার', 'আরিফুল হক', 'আরিফুল ইসলাম', 'ফারহানা আখতার ইতি', 'কামরুল হাসান বিপ্লব', 'মিজানুর রহমান মিলন', 'শফিকুল ইসলাম শুভ', 'নাজমুল হুদা', 'আবু বকর সিদ্দিক', 'রাকিবুল হাসান সাজু');`);
+      } catch {}
+      // Blood donors only need OTP verification, no manual admin approval required
+      try {
+        await db.query(`UPDATE blood_donors SET is_approved = true, is_verified = true, verified_date = 'ওটিপি যাচাইকৃত' WHERE is_approved = false OR is_approved IS NULL;`);
       } catch {}
     })();
   }
@@ -33,10 +50,10 @@ export class DatabaseStore {
     {
       id: 'usr-admin-1',
       name: 'প্রধান প্রশাসক (Admin)',
-      email: 'admin@kuriconnect.org',
+      email: 'kuriconnect@gmail.com',
       phone: '01700000000',
       nid: '19851234567890123',
-      password: 'admin123',
+      password: '123456',
       role: 'admin',
       createdAt: '2026-01-01'
     },
@@ -210,13 +227,16 @@ export class DatabaseStore {
     search?: string;
     limit?: number;
     approvedOnly?: boolean;
-  }) {
+  }): Promise<BloodDonor[]> {
+    await ensureUserIdColumns();
+
+    let dbDonors: BloodDonor[] = [];
     try {
       let query = `SELECT * FROM blood_donors WHERE 1=1`;
       const values: any[] = [];
       let idx = 1;
 
-      // Filter by approval: by default, landing & public pages only see approved donors
+      // Filter by approval only if explicitly requested
       if (params?.approvedOnly) {
         query += ` AND is_approved = true`;
       }
@@ -225,22 +245,25 @@ export class DatabaseStore {
         values.push(params.bloodGroup);
       }
       if (params?.upazilaId && params.upazilaId !== 'all') {
-        query += ` AND upazila_id = $${idx++}`;
+        query += ` AND (upazila_id = $${idx} OR LOWER(upazila_id) = LOWER($${idx}) OR upazila_name_bn LIKE $${idx})`;
         values.push(params.upazilaId);
+        idx++;
       }
       if (params?.search) {
         query += ` AND (LOWER(donor_name_bn) LIKE $${idx} OR LOWER(area_bn) LIKE $${idx})`;
         values.push(`%${params.search.toLowerCase()}%`);
         idx++;
       }
-      query += ` ORDER BY created_at DESC`;
+
+      // Safe order by registered_since and id to avoid missing created_at errors
+      query += ` ORDER BY registered_since DESC, id DESC`;
       if (params?.limit) {
         query += ` LIMIT $${idx++}`;
         values.push(params.limit);
       }
 
       const rows = await db.query<any>(query, values);
-      return rows.map((r) => ({
+      dbDonors = rows.map((r) => ({
         id: r.id,
         donorNameBn: r.donor_name_bn,
         donorNameEn: r.donor_name_en,
@@ -263,9 +286,14 @@ export class DatabaseStore {
         notes: r.notes
       })) as BloodDonor[];
     } catch (err) {
-      console.error('DatabaseStore.getBloodDonors error:', err);
-      return [];
+      console.error('DatabaseStore.getBloodDonors query error:', err);
     }
+
+    if (params?.limit && dbDonors.length > params.limit) {
+      return dbDonors.slice(0, params.limit);
+    }
+
+    return dbDonors;
   }
 
   async addBloodDonor(data: Partial<BloodDonor> & { donorNameBn: string; bloodGroup: BloodDonor['bloodGroup']; phone?: string }) {
@@ -278,7 +306,7 @@ export class DatabaseStore {
     const upazilaId = (data.upazilaId as any) || 'kurigram-sadar';
     const upazilaNameBn = upazila ? upazila.nameBn : 'কুড়িগ্রাম সদর';
 
-    // Requires admin approval (is_approved = false by default)
+    // Auto-approved upon OTP verification (is_approved = true, no admin approval needed)
     await db.query(
       `INSERT INTO blood_donors (
         id, donor_name_bn, donor_name_en, blood_group, upazila_id, upazila_name_bn, union_name_bn,
@@ -300,8 +328,8 @@ export class DatabaseStore {
         data.availabilityStatus || 'available',
         data.lastDonationDate || null,
         true,
-        false, // Pending approval
-        'অপেক্ষমাণ (অনুমোদন প্রয়োজন)',
+        true, // Auto-approved upon OTP verification
+        'ওটিপি যাচাইকৃত',
         new Date().toISOString().split('T')[0],
         data.totalDonationsCount || 1,
         data.emergencyAvailable ?? true,
@@ -324,8 +352,8 @@ export class DatabaseStore {
       lastDonationDate: data.lastDonationDate,
       availabilityStatus: data.availabilityStatus || 'available',
       isVerified: true,
-      isApproved: false,
-      verifiedDate: 'অপেক্ষমাণ (অনুমোদন প্রয়োজন)',
+      isApproved: true,
+      verifiedDate: 'ওটিপি যাচাইকৃত',
       registeredSince: new Date().toISOString().split('T')[0],
       totalDonationsCount: data.totalDonationsCount || 1,
       emergencyAvailable: data.emergencyAvailable ?? true,
@@ -746,7 +774,7 @@ export class DatabaseStore {
         updatedAt: r.updated_at || 'আজ',
         reporterNameMasked: r.reporter_name_masked,
         reporterPhoneMasked: r.reporter_phone_masked,
-        upvotesCount: r.upvotes_count || 1,
+        upvotesCount: r.upvotes_count !== null && r.upvotes_count !== undefined ? Number(r.upvotes_count) : 0,
         images: r.images || []
       })) as CommunityReport[];
     } catch (err: any) {
@@ -887,6 +915,10 @@ export class DatabaseStore {
         setClauses.push(`location_details_bn = $${idx++}`);
         values.push(updates.locationDetailsBn);
       }
+      if (updates.upvotesCount !== undefined) {
+        setClauses.push(`upvotes_count = $${idx++}`);
+        values.push(updates.upvotesCount);
+      }
 
       setClauses.push(`updated_at = $${idx++}`);
       values.push('আজ');
@@ -909,6 +941,22 @@ export class DatabaseStore {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  async incrementReportUpvote(id: string): Promise<number | null> {
+    try {
+      const rows = await db.query<any>(
+        `UPDATE community_reports SET upvotes_count = COALESCE(upvotes_count, 0) + 1 WHERE id = $1 RETURNING upvotes_count`,
+        [id]
+      );
+      if (rows && rows.length > 0) {
+        return Number(rows[0].upvotes_count);
+      }
+      return null;
+    } catch (err) {
+      console.error('DatabaseStore.incrementReportUpvote error:', err);
+      return null;
     }
   }
 
@@ -980,7 +1028,8 @@ export class DatabaseStore {
         gdNumber: r.gd_number,
         rewardBn: r.reward_bn,
         status: r.status,
-        isVerified: r.is_verified
+        isVerified: r.is_verified,
+        images: r.images || []
       })) as unknown as LostNotice[];
     } catch (err: any) {
       if (err?.code === '42703' || String(err?.message || '').includes('user_id')) {
@@ -1006,6 +1055,7 @@ export class DatabaseStore {
     contactPhone: string;
     gdNumber?: string;
     rewardBn?: string;
+    images?: string[];
   }) {
     const upazila = UPAZILAS.find((u) => u.id === data.upazilaId);
     const trackingNumber = `LF-${Date.now().toString().slice(-6)}`;
@@ -1021,14 +1071,15 @@ export class DatabaseStore {
       other: 'অন্যান্য'
     };
     const categoryLabelBn = categoryLabelMap[data.category] || 'অন্যান্য';
+    const images = Array.isArray(data.images) ? data.images : [];
 
     try {
       await db.query(
         `INSERT INTO lost_notices (
           id, tracking_number, type, category, category_label_bn, title_bn, description_bn,
           upazila_id, upazila_name_bn, location_details_bn, event_date, contact_name, contact_phone,
-          gd_number, reward_bn, status, is_verified, user_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+          gd_number, reward_bn, status, is_verified, user_id, images
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
         [
           id,
           trackingNumber,
@@ -1047,36 +1098,67 @@ export class DatabaseStore {
           data.rewardBn || null,
           'active',
           true,
-          data.userId || null
+          data.userId || null,
+          images
         ]
       );
     } catch {
-      await db.query(
-        `INSERT INTO lost_notices (
-          id, tracking_number, type, category, category_label_bn, title_bn, description_bn,
-          upazila_id, upazila_name_bn, location_details_bn, event_date, contact_name, contact_phone,
-          gd_number, reward_bn, status, is_verified
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
-        [
-          id,
-          trackingNumber,
-          data.type,
-          data.category,
-          categoryLabelBn,
-          data.titleBn,
-          data.descriptionBn || '',
-          upazilaId,
-          upazilaNameBn,
-          data.locationDetailsBn || '',
-          'আজ',
-          data.contactName,
-          data.contactPhone,
-          data.gdNumber || null,
-          data.rewardBn || null,
-          'active',
-          true
-        ]
-      );
+      try {
+        await db.query(
+          `INSERT INTO lost_notices (
+            id, tracking_number, type, category, category_label_bn, title_bn, description_bn,
+            upazila_id, upazila_name_bn, location_details_bn, event_date, contact_name, contact_phone,
+            gd_number, reward_bn, status, is_verified, images
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+          [
+            id,
+            trackingNumber,
+            data.type,
+            data.category,
+            categoryLabelBn,
+            data.titleBn,
+            data.descriptionBn || '',
+            upazilaId,
+            upazilaNameBn,
+            data.locationDetailsBn || '',
+            'আজ',
+            data.contactName,
+            data.contactPhone,
+            data.gdNumber || null,
+            data.rewardBn || null,
+            'active',
+            true,
+            images
+          ]
+        );
+      } catch {
+        await db.query(
+          `INSERT INTO lost_notices (
+            id, tracking_number, type, category, category_label_bn, title_bn, description_bn,
+            upazila_id, upazila_name_bn, location_details_bn, event_date, contact_name, contact_phone,
+            gd_number, reward_bn, status, is_verified
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+          [
+            id,
+            trackingNumber,
+            data.type,
+            data.category,
+            categoryLabelBn,
+            data.titleBn,
+            data.descriptionBn || '',
+            upazilaId,
+            upazilaNameBn,
+            data.locationDetailsBn || '',
+            'আজ',
+            data.contactName,
+            data.contactPhone,
+            data.gdNumber || null,
+            data.rewardBn || null,
+            'active',
+            true
+          ]
+        );
+      }
     }
 
     return {
@@ -1097,7 +1179,8 @@ export class DatabaseStore {
       gdNumber: data.gdNumber,
       rewardBn: data.rewardBn,
       status: 'active',
-      isVerified: true
+      isVerified: true,
+      images
     } as unknown as LostNotice;
   }
 
@@ -1118,6 +1201,10 @@ export class DatabaseStore {
       if (updates.descriptionBn !== undefined) {
         setClauses.push(`description_bn = $${idx++}`);
         values.push(updates.descriptionBn);
+      }
+      if (updates.images !== undefined) {
+        setClauses.push(`images = $${idx++}`);
+        values.push(updates.images);
       }
 
       if (setClauses.length > 0) {

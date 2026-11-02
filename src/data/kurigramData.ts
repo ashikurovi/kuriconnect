@@ -28,7 +28,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Kurigram Sadar is the administrative and commercial hub of Kurigram district, situated on the picturesque bank of the Dharla River.',
     historyBn: 'প্রাচীনকালে এটি কামরূপ রাজ্যের অংশ ছিল। পরবর্তীতে মোঘল ও ব্রিটিশ আমলে রংপুরের অন্তর্ভুক্ত কুড়িগ্রাম মহকুমার কেন্দ্রবিন্দুতে রূপ নেয়। ১৯৮৪ সালে কুড়িগ্রাম পূর্ণাঙ্গ জেলায় রূপ নিলে সদর উপজেলা প্রতিষ্ঠা লাভ করে।',
     mapCoords: { lat: 25.8103, lng: 89.6500 },
-    featuredImage: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/kurigram-sadar-banner.jpg',
     keyStats: {
       literacyRate: '৬২.৪%',
       collegesCount: 14,
@@ -52,7 +52,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Ulipur is the largest upazila in Kurigram by area and population, defined by the majestic confluence of the Brahmaputra and Teesta rivers.',
     historyBn: 'ব্রিটিশ আমলে পাঙ্গার জমিদারদের প্রভাব ছিল এই অঞ্চলে। ১৯৭১ সালের মহান মুক্তিযুদ্ধে উলিপুরের হাতিয়ায় পাকিস্তানি হানাদার বাহিনী নৃশংস গণহত্যা চালায়, যা ইতিহাসে হাতিয়া ট্র্যাজেডি নামে খ্যাত।',
     mapCoords: { lat: 25.6667, lng: 89.6333 },
-    featuredImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/ulipur-banner.jpg',
     keyStats: {
       literacyRate: '৫৮.৭%',
       collegesCount: 11,
@@ -76,7 +76,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Nageshwari is an agricultural powerhouse surrounded by the Dudhkumar and Gangadhar rivers, renowned for Bhitorbandh Zamindar Palace.',
     historyBn: 'ভিতরবন্দ পরগনা ছিল এই অঞ্চলের ঐতিহাসিক শাসনকেন্দ্র। এখানকার নুনখাওয়া ঘাট ছিল আসাম ও বাংলার মধ্যকার এক সময়ের অন্যতম প্রধান নদীবন্দর।',
     mapCoords: { lat: 25.9667, lng: 89.7000 },
-    featuredImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/nageshwari-banner.jpg',
     keyStats: {
       literacyRate: '৫৭.২%',
       collegesCount: 9,
@@ -100,7 +100,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'The northernmost border upazila of Kurigram, home to the strategic Sonahat Land Port and the historic century-old Sonahat Bridge.',
     historyBn: 'ব্রিটিশ আমলে আসামের সাথে বঙ্গীয় রেল যোগাযোগ স্থাপনে সোনাহাট রেল সেতু তৈরি হয়। ১৯৭১ সালের মহান মুক্তিযুদ্ধে ভুরুঙ্গামারীর জয়মনিরহাট ও সোনাহাট রণক্ষেত্র বীর মুক্তিযোদ্ধাদের অসামান্য প্রতিরোধের সাক্ষী।',
     mapCoords: { lat: 26.1333, lng: 89.7667 },
-    featuredImage: 'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/bhurungamari-banner.jpg',
     keyStats: {
       literacyRate: '৬৩.১%',
       collegesCount: 7,
@@ -124,7 +124,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Phulbari is celebrated for the historic Naodanga Zamindar Palace and the transformative integration of Dasiar Chhara enclave.',
     historyBn: '২০১৫ সালের ১ আগস্ট ঐতিহাসিক ছিটমহল বিনিময়ের মাধ্যমে ফুলবাড়ীর দাসিয়ারছড়ার নাগরিকরা পূর্ণ নাগরিক অধিকার লাভ করে। নাওডাঙ্গা জমিদারদের প্রাচীন ইতিহাস আজও এখানকার স্থাপত্যে বিদ্যমান।',
     mapCoords: { lat: 25.9500, lng: 89.5667 },
-    featuredImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/phulbari-banner.jpg',
     keyStats: {
       literacyRate: '৬৪.৮%',
       collegesCount: 6,
@@ -148,7 +148,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Rajarhat is a cultural treasure house known for the Mughal-era Chandamari Mosque and the mythical Sindurmati sacred lake.',
     historyBn: 'চান্দামারী মসজিদ প্রায় পঞ্চদশ-ষোড়শ শতকে নির্মিত হয়। সিন্দুরমতি দিঘি হিন্দু সম্প্রদায়ের এক প্রাচীন পুণ্যতীর্থ যেখানে প্রতি বৈশাখে সহস্রাধিক মানুষের মিলনমেলা বসে।',
     mapCoords: { lat: 25.8000, lng: 89.5500 },
-    featuredImage: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/rajarhat-banner.jpg',
     keyStats: {
       literacyRate: '৬৬.৫%',
       collegesCount: 8,
@@ -172,7 +172,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Immortalized in folk lore as "Chilmarir Bondor", Chilmari is an iconic Brahmaputra river port with immense heritage and river charm.',
     historyBn: 'শতবর্ষ আগে চিলমারী ছিল ব্রিটিশ ভারতীয় আসাম-বাংলা বাণিজ্যের প্রধান নদী বন্দর। এখানকার অষ্টমীর স্নান মেলায় দূরদূরান্ত থেকে লক্ষাধিক হিন্দু পুণ্যার্থী ব্রহ্মপুত্রে পুণ্যস্নান করতে আসেন।',
     mapCoords: { lat: 25.5667, lng: 89.6833 },
-    featuredImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/chilmari-banner.jpg',
     keyStats: {
       literacyRate: '৫৫.৩%',
       collegesCount: 5,
@@ -196,7 +196,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Located across the eastern bank of the Brahmaputra, Raumari stood as an unbreached Free Zone (Muktanchal) during the 1971 Liberation War.',
     historyBn: '১৯৭১ সালে রৌমারী মুক্তাঞ্চল থেকে স্বাধীন বাংলা বেতার কেন্দ্র ও মুক্তিযুদ্ধকালীন বেসামরিক প্রশাসন পরিচালিত হত। মুক্তিযোদ্ধাদের প্রশিক্ষণ ও অস্ত্র সংগ্রহে রৌমারী কেন্দ্রীয় ভূমিকা রেখেছিল।',
     mapCoords: { lat: 25.5500, lng: 89.8500 },
-    featuredImage: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/raumari-banner.jpg',
     keyStats: {
       literacyRate: '৫৬.৪%',
       collegesCount: 6,
@@ -220,7 +220,7 @@ export const UPAZILAS: Upazila[] = [
     overviewEn: 'Char Rajibpur represents the resilience of char life on the southeastern front of Kurigram, bounded by riverine channels.',
     historyBn: 'মুক্তিযুদ্ধের সময় রাজীবপুর ও কোদালকাটি অঞ্চলে রক্তক্ষয়ী সম্মুখযুদ্ধ সংঘটিত হয়। কোদালকাটি যুদ্ধে বীর মুক্তিযোদ্ধাদের সাহসিকতায় দখলদার পাকিস্তানি বাহিনী পিছু হটতে বাধ্য হয়।',
     mapCoords: { lat: 25.4000, lng: 89.8833 },
-    featuredImage: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80',
+    featuredImage: '/char-rajibpur-banner.jpg',
     keyStats: {
       literacyRate: '৫২.১%',
       collegesCount: 3,
@@ -371,8 +371,8 @@ export const HERITAGE_SITES: HeritageSite[] = [
   {
     id: 'heritage-dharla-bridge',
     slug: 'dharla-bridge-kurigram',
-    nameBn: 'শেখ হাসিনা ধরলা সেতু ও পাড়',
-    nameEn: 'Sheikh Hasina Dharla Bridge & Riverside',
+    nameBn: 'ধরলা সেতু ও পাড়',
+    nameEn: 'Dharla Bridge & Riverside',
     upazilaId: 'kurigram-sadar',
     upazilaNameBn: 'কুড়িগ্রাম সদর',
     category: 'natural-beauty',
@@ -383,10 +383,11 @@ export const HERITAGE_SITES: HeritageSite[] = [
     transportInfoBn: 'কুড়িগ্রাম জেলা সদর বাস টার্মিনাল বা জিরো পয়েন্ট থেকে অটো বা রিকশায় মাত্র ১৫ মিনিট। ভাড়া ২০-৩০ টাকা।',
     addressBn: 'ধরলা নদী পাড়, কুড়িগ্রাম সদর - ফুলবাড়ী সংযোগ সড়ক',
     mapCoords: { lat: 25.8285, lng: 89.6580 },
-    mainImage: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80',
+    mainImage: '/dharla-bridge-sunset.jpg',
     galleryImages: [
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80'
+      '/dharla-bridge-sunset.jpg',
+      '/dharla-bridge-night.jpg',
+      '/dharla-bridge-road.jpg'
     ],
     verifiedDate: '২০২৬-১০-১৫',
     officialSource: 'জেলা প্রশাসন তথ্য বাতায়ন'
@@ -406,9 +407,11 @@ export const HERITAGE_SITES: HeritageSite[] = [
     transportInfoBn: 'কুড়িগ্রাম সদর থেকে চিলমারী রুটে নিয়মিত বাস ও সিএনজি চলাচল করে। দূরত্ব প্রায় ৩৫ কিমি, সময় লাগে ১ ঘণ্টা।',
     addressBn: 'রমনা বাজার, চিলমারী, কুড়িগ্রাম',
     mapCoords: { lat: 25.5667, lng: 89.6833 },
-    mainImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+    mainImage: '/chilmari-river-port-aerial.jpg',
     galleryImages: [
-      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80'
+      '/chilmari-river-port-aerial.jpg',
+      '/chilmari-romna-ghat.jpg',
+      '/chilmari-sunset.jpg'
     ],
     verifiedDate: '২০২৬-১০-২০',
     officialSource: 'বিআইডব্লিউটিএ ও স্থানীয় ঐতিহ্য পরিষদ'
@@ -428,9 +431,11 @@ export const HERITAGE_SITES: HeritageSite[] = [
     transportInfoBn: 'রাজারহাট উপজেলা সদর থেকে প্রায় ৩ কিলোমিটার দূরে চাকিরপশার ইউনিয়নে অবস্থিত। অটোরিকশায় যাওয়া যায়।',
     addressBn: 'চান্দামারী গ্রাম, চাকিরপশার, রাজারহাট, কুড়িগ্রাম',
     mapCoords: { lat: 25.7925, lng: 89.5380 },
-    mainImage: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1200&q=80',
+    mainImage: '/chandamari-mosque-1.jpg',
     galleryImages: [
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'
+      '/chandamari-mosque-1.jpg',
+      '/chandamari-mosque-2.jpg',
+      '/chandamari-mosque-3.png'
     ],
     verifiedDate: '২০২৬-১০-১৮',
     officialSource: 'বাংলাদেশ প্রত্নতত্ত্ব অধিদপ্তর'
@@ -450,9 +455,11 @@ export const HERITAGE_SITES: HeritageSite[] = [
     transportInfoBn: 'ভুরুঙ্গামারী সদর থেকে সোনাহাট স্থলবন্দর সড়কে প্রায় ৮ কিলোমিটার। সিএনজি বা ব্যাটারি রিকশা সহজলভ্য।',
     addressBn: 'সোনাহাট, বঙ্গ সোনাহাট ইউনিয়ন, ভুরুঙ্গামারী',
     mapCoords: { lat: 26.1250, lng: 89.7890 },
-    mainImage: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80',
+    mainImage: '/sonahat-bridge.jpg',
     galleryImages: [
-      'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&w=800&q=80'
+      '/sonahat-bridge.jpg',
+      '/sonahat-bridge-gallery-1.jpg',
+      '/sonahat-bridge-gallery-2.png'
     ],
     verifiedDate: '২০২৬-১০-১২',
     officialSource: 'সড়ক ও জনপথ অধিদপ্তর ও ভুরুঙ্গামারী প্রেসক্লাব'
@@ -472,8 +479,12 @@ export const HERITAGE_SITES: HeritageSite[] = [
     transportInfoBn: 'উলিপুর উপজেলা সদর থেকে প্রায় ৪ কিলোমিটার উত্তরে ধরনীবাড়ী ইউনিয়নে অবস্থিত। অটোরিকশায় ১০ মিনিটে পৌঁছানো যায়।',
     addressBn: 'ধরনীবাড়ী, উলিপুর, কুড়িগ্রাম',
     mapCoords: { lat: 25.6880, lng: 89.6210 },
-    mainImage: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80',
-    galleryImages: [],
+    mainImage: '/panga-rajbari-1.jpg',
+    galleryImages: [
+      '/panga-rajbari-1.jpg',
+      '/panga-rajbari-2.jpg',
+      '/panga-rajbari-3.png'
+    ],
     verifiedDate: '২০২৬-১০-১০',
     officialSource: 'কুড়িগ্রাম জেলা ইতিহাস ও ঐতিহ্য পরিষদ'
   },
@@ -492,8 +503,13 @@ export const HERITAGE_SITES: HeritageSite[] = [
     transportInfoBn: 'ফুলবাড়ী উপজেলা সদর থেকে প্রায় ৭ কিমি পশ্চিমে নাওডাঙ্গা বাজার সংলগ্ন।',
     addressBn: 'নাওডাঙ্গা বাজার, ফুলবাড়ী, কুড়িগ্রাম',
     mapCoords: { lat: 25.9620, lng: 89.5120 },
-    mainImage: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80',
-    galleryImages: [],
+    mainImage: '/naodanga-zamindar-bari.jpg',
+    galleryImages: [
+      '/naodanga-zamindar-bari.jpg',
+      '/naodanga-mandir.jpg',
+      '/naodanga-courtyard.jpg',
+      '/naodanga-corridor.jpg'
+    ],
     verifiedDate: '২০২৬-১০-০৫',
     officialSource: 'ফুলবাড়ী উপজেলা প্রশাসন'
   }
@@ -637,120 +653,7 @@ export const HEALTHCARE_FACILITIES: HealthcareFacility[] = [
   }
 ];
 
-export const BLOOD_DONORS: BloodDonor[] = [
-  {
-    id: 'donor-1',
-    donorNameBn: 'আরিফুল ইসলাম',
-    bloodGroup: 'O+',
-    upazilaId: 'kurigram-sadar',
-    upazilaNameBn: 'কুড়িগ্রাম সদর',
-    areaBn: 'কলেজ মোড়, সদর',
-    contactNumberMasked: '০১৭১৭-***৮৯০',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৮-১৫',
-    availabilityStatus: 'available',
-    verifiedDate: '২০২৬-১০-২৪',
-    registeredSince: '২০২৬-০১-১০'
-  },
-  {
-    id: 'donor-2',
-    donorNameBn: 'ফারহানা আখতার ইতি',
-    bloodGroup: 'A+',
-    upazilaId: 'kurigram-sadar',
-    upazilaNameBn: 'কুড়িগ্রাম সদর',
-    areaBn: 'ঘোগাদহ ইউনিয়ন',
-    contactNumberMasked: '০১৭৫৫-***৪২১',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৭-২০',
-    availabilityStatus: 'available',
-    verifiedDate: '২০২৬-১০-২৫',
-    registeredSince: '২০২৬-০৩-১২'
-  },
-  {
-    id: 'donor-3',
-    donorNameBn: 'কামরুল হাসান বিপ্লব',
-    bloodGroup: 'B+',
-    upazilaId: 'ulipur',
-    upazilaNameBn: 'উলিপুর',
-    areaBn: 'পৌরসভা এলাকা',
-    contactNumberMasked: '০১৯১১-***৩১২',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৯-১০',
-    availabilityStatus: 'recently_donated',
-    verifiedDate: '২০২৬-১০-২১',
-    registeredSince: '২০২৫-১১-০৫'
-  },
-  {
-    id: 'donor-4',
-    donorNameBn: 'মিজানুর রহমান মিলন',
-    bloodGroup: 'AB+',
-    upazilaId: 'nageshwari',
-    upazilaNameBn: 'নাগেশ্বরী',
-    areaBn: 'রামখানা',
-    contactNumberMasked: '০১৮১৬-***৮৭৬',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৬-০৫',
-    availabilityStatus: 'available',
-    verifiedDate: '২০২৬-১০-১৯',
-    registeredSince: '২০২৬-০২-১৮'
-  },
-  {
-    id: 'donor-5',
-    donorNameBn: 'শফিকুল ইসলাম শুভ',
-    bloodGroup: 'O-',
-    upazilaId: 'bhurungamari',
-    upazilaNameBn: 'ভুরুঙ্গামারী',
-    areaBn: 'জয়মনিরহাট',
-    contactNumberMasked: '০১৭৯৩-***৬৫৪',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৫-১৪',
-    availabilityStatus: 'available',
-    verifiedDate: '২০২৬-১০-২৬',
-    registeredSince: '২০২৬-০৪-০১'
-  },
-  {
-    id: 'donor-6',
-    donorNameBn: 'নাজমুল হুদা',
-    bloodGroup: 'A-',
-    upazilaId: 'chilmari',
-    upazilaNameBn: 'চিলমারী',
-    areaBn: 'রমনা বাজার',
-    contactNumberMasked: '০১৬২৪-***৩২১',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৮-২৯',
-    availabilityStatus: 'available',
-    verifiedDate: '২০২৬-১০-২৭',
-    registeredSince: '২০২৬-০১-২০'
-  },
-  {
-    id: 'donor-7',
-    donorNameBn: 'আবু বকর সিদ্দিক',
-    bloodGroup: 'B-',
-    upazilaId: 'rajarhat',
-    upazilaNameBn: 'রাজারহাট',
-    areaBn: 'চাকিরপশার',
-    contactNumberMasked: '০১৭২২-***৯৮৭',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৭-০২',
-    availabilityStatus: 'available',
-    verifiedDate: '২০২৬-১০-২২',
-    registeredSince: '২০২৬-০৫-১০'
-  },
-  {
-    id: 'donor-8',
-    donorNameBn: 'রাকিবুল হাসান সাজু',
-    bloodGroup: 'AB-',
-    upazilaId: 'phulbari',
-    upazilaNameBn: 'ফুলবাড়ী',
-    areaBn: 'শিমুলবাড়ী',
-    contactNumberMasked: '০১৯২২-***৫৪৩',
-    directContactAvailable: true,
-    lastDonationDate: '২০২৬-০৯-১৮',
-    availabilityStatus: 'recently_donated',
-    verifiedDate: '২০২৬-১০-২৩',
-    registeredSince: '২০২৬-০২-১৫'
-  }
-];
+export const BLOOD_DONORS: BloodDonor[] = [];
 
 export const POLICE_CONTACTS: PoliceContact[] = [
   {
@@ -869,76 +772,7 @@ export const POLICE_CONTACTS: PoliceContact[] = [
   }
 ];
 
-export const COMMUNITY_REPORTS: CommunityReport[] = [
-  {
-    id: 'rep-1',
-    titleBn: 'যাত্রাপুর ঘাটের সংযোগ সড়কে গভীর ভাঙন, চলাচলে মারাত্মক ঝুঁকি',
-    descriptionBn: 'সদর উপজেলার যাত্রাপুর হাটে যাওয়ার একমাত্র পাকা রাস্তার ব্রহ্মপুত্র তীরবর্তী অংশ প্রায় ১০০ মিটার দেবে গেছে। ভারী যানবাহন চলাচল বন্ধ হয়ে গেছে। এতে চরাঞ্চল থেকে ধান ও পাট নিয়ে আসা কৃষকরা চরম ভোগান্তিতে পড়েছেন।',
-    category: 'damaged-road',
-    categoryLabelBn: 'ক্ষতিগ্রস্ত সড়ক ও যোগাযোগ',
-    upazilaId: 'kurigram-sadar',
-    upazilaNameBn: 'কুড়িগ্রাম সদর',
-    locationDetailsBn: 'যাত্রাপুর হাট সংযোগ সড়ক, নদীর তীর সংলগ্ন',
-    status: 'in_progress',
-    submittedAt: '২৪ অক্টোবর ২০২৬',
-    updatedAt: '২৮ অক্টোবর ২০২৬',
-    reporterNameMasked: 'এম. রশীদ (স্থানীয় অধিবাসী)',
-    upvotesCount: 47,
-    resolutionNotesBn: 'স্থানীয় সরকার প্রকৌশল অধিদপ্তর (এলজিইডি) পরিদর্শন করেছে। জিওব্যাগ ডাম্পিং করে অস্থায়ী যান চলাচলের কাজ শুরু হয়েছে। স্থায়ী পাইলিং প্রস্তাবনা পাঠানো হয়েছে।',
-    images: ['https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80']
-  },
-  {
-    id: 'rep-2',
-    titleBn: 'বেগমগঞ্জ চরে নদী ভাঙনরোধে জরুরি জিওব্যাগ ফেলা প্রয়োজন',
-    descriptionBn: 'উলিপুরের বেগমগঞ্জ ইউনিয়নের মোল্লার চরে তীব্র নদী ভাঙনে গত তিন দিনে ১২টি বসতভিটা ও একটি প্রাথমিক বিদ্যালয়ের সীমানা প্রাচীর বিলীন হয়েছে। দ্রুত প্রতিরক্ষামূলক ব্যবস্থা না নিলে পুরো বিদ্যালয় ভবন নদীতে তলিয়ে যাবে।',
-    category: 'river-erosion',
-    categoryLabelBn: 'নদী ভাঙন ও চর বিপর্যয়',
-    upazilaId: 'ulipur',
-    upazilaNameBn: 'উলিপুর',
-    locationDetailsBn: 'মোল্লার চর, বেগমগঞ্জ ইউনিয়ন, উলিপুর',
-    status: 'under_review',
-    submittedAt: '২৬ অক্টোবর ২০২৬',
-    updatedAt: '২৭ অক্টোবর ২০২৬',
-    reporterNameMasked: 'গ্রাম দুর্যোগ ব্যবস্থাপনা কমিটি',
-    upvotesCount: 68,
-    resolutionNotesBn: 'পানি উন্নয়ন বোর্ড (পাউবো) কুড়িগ্রামকে তালিকা ও ভিডিও প্রমাণসহ চিঠি পাঠানো হয়েছে। সরেজমিনে মাপজোখ চলছে।',
-    images: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80']
-  },
-  {
-    id: 'rep-3',
-    titleBn: 'পশ্চিম নাওডাঙ্গা সরকারি প্রাথমিক বিদ্যালয়ের ঝুলন্ত বৈদ্যুতিক তার অপসরণ',
-    descriptionBn: 'স্কুল মাঠের ওপর দিয়ে যাওয়া পল্লী বিদ্যুতের ১১ কেভি তার অনেক নিচে ঝুলে ছিল। ঝড়-বৃষ্টির দিনে শিক্ষার্থীদের জন্য দুর্ঘটনা ঘটতে পারত।',
-    category: 'school-hazard',
-    categoryLabelBn: 'শিক্ষা প্রতিষ্ঠান নিরাপত্তা',
-    upazilaId: 'phulbari',
-    upazilaNameBn: 'ফুলবাড়ী',
-    locationDetailsBn: 'পশ্চিম নাওডাঙ্গা প্রাথমিক বিদ্যালয় মাঠ',
-    status: 'resolved',
-    submittedAt: '১০ অক্টোবর ২০২৬',
-    updatedAt: '২০ অক্টোবর ২০২৬',
-    reporterNameMasked: 'প্রধান শিক্ষক ও অভিভাবকবৃন্দ',
-    upvotesCount: 82,
-    resolutionNotesBn: 'পল্লী বিদ্যুৎ সমিতি সমিতি-২ ফুলবাড়ী জোনাল অফিস দ্রুততম সময়ে নতুন খুঁটি স্থাপন করে তার উঁচু করে সুরক্ষিত করেছে। সমস্যা সমাধান সম্পন্ন।',
-    images: ['https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80']
-  },
-  {
-    id: 'rep-4',
-    titleBn: 'রমনা বাজার রেলগেটের জলাবদ্ধতা দূরীকরণ ও ড্রেনেজ মেরামত',
-    descriptionBn: 'রমনা বাজার রেলগেটের মুখে বৃষ্টি হলেই হাঁটু পানি জমে থাকে। পথচারী ও যাত্রীদের চরম দুর্ভোগ পোহাতে হয়।',
-    category: 'waterlogging',
-    categoryLabelBn: 'জলাবদ্ধতা ও ড্রেনেজ',
-    upazilaId: 'chilmari',
-    upazilaNameBn: 'চিলমারী',
-    locationDetailsBn: 'রমনা রেলগেট সংলগ্ন প্রধান সড়ক',
-    status: 'submitted',
-    submittedAt: '২৮ অক্টোবর ২০২৬',
-    updatedAt: '২৯ অক্টোবর ২০২৬',
-    reporterNameMasked: 'ব্যবসায়ী সমিতি রমনা',
-    upvotesCount: 31,
-    resolutionNotesBn: 'প্রতিবেদনটি যাচাই-বাছাই পর্যায়ে রয়েছে এবং উপজেলা প্রশাসনের প্রকৌশল শাখায় পাঠানোর প্রস্তুতি চলছে।',
-    images: []
-  }
-];
+export const COMMUNITY_REPORTS: CommunityReport[] = [];
 
 export const SCAM_ALERTS: ScamAlert[] = [
   {

@@ -67,8 +67,28 @@ export async function PUT(request: Request) {
     if (!id) {
       return NextResponse.json({ success: false, message: 'ID দরকার' }, { status: 400 });
     }
+    if ((updates as any).action === 'upvote' || (updates as any).upvote) {
+      const count = await serverStore.incrementReportUpvote(id);
+      return NextResponse.json({ success: true, upvotesCount: count });
+    }
     const updated = await serverStore.updateReport(id, updates as Partial<CommunityReport>);
     return NextResponse.json({ success: true, data: updated });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const { id, action } = await request.json();
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'ID দরকার' }, { status: 400 });
+    }
+    if (action === 'upvote') {
+      const count = await serverStore.incrementReportUpvote(id);
+      return NextResponse.json({ success: true, upvotesCount: count });
+    }
+    return NextResponse.json({ success: false, message: 'অজানা অ্যাকশন' }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

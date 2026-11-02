@@ -143,7 +143,7 @@ export default async function HeritageDetailPage({ params }: HeritageDetailPageP
               <h2 className="text-lg font-bold text-gray-900 pb-2 border-b border-gray-100">
                 ফটোগ্যালারি
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {site.galleryImages.map((img, idx) => (
                   <div key={idx} className="rounded-md overflow-hidden aspect-[16/10] bg-gray-100 border border-gray-200">
                     <img src={img} alt={`${site.nameBn} ছবি ${idx + 1}`} className="w-full h-full object-cover" />

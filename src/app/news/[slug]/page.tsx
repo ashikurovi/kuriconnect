@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { NEWS_ARTICLES } from '@/data/kurigramData';
 import NewsCard from '@/components/NewsCard';
+import AdBanner from '@/components/AdBanner';
 import {
   Clock,
   User,
@@ -158,6 +159,9 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
           এই প্রতিবেদনটি নিরপেক্ষ সাংবাদিকতার মানদণ্ড ও স্থানীয় প্রত্যক্ষদর্শীদের সাক্ষ্যের ভিত্তিতে প্রস্তুত। কোনো তথ্যে অনিচ্ছাকৃত ভুলত্রুটি পরিলক্ষিত হলে বা কোনো পক্ষের দ্বিমত থাকলে আমাদের বার্তা বিভাগে ইমেইল (news@hamarkurigram.org) করুন। আমরা দ্রুত সত্যতা যাচাই করে প্রয়োজনীয় সংশোধনী প্রকাশে অঙ্গীকারবদ্ধ।
         </p>
       </div>
+
+      {/* Advertisement Unit in Detail Page */}
+      <AdBanner adSlot="9876543210" adFormat="auto" />
 
       {/* Related News Section */}
       <section className="pt-8 border-t-2 border-[#14532d] space-y-4">

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAdmin, AdminTab } from './AdminContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   Menu,
   Search,
@@ -45,6 +46,7 @@ export default function AdminNavbar() {
     setUnreadNotificationsCount,
     triggerAlert,
   } = useAdmin();
+  const { user, logout } = useAuth();
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -220,8 +222,8 @@ export default function AdminNavbar() {
           {profileOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-xs py-1">
               <div className="px-3 py-2 border-b border-slate-100">
-                <p className="font-bold text-slate-800">সুপার অ্যাডমিন</p>
-                <p className="text-[10px] text-slate-400">admin@kuriconnect.org</p>
+                <p className="font-bold text-slate-800">{user?.name || 'প্রধান প্রশাসক'}</p>
+                <p className="text-[10px] text-slate-400 font-mono">{user?.email || 'kuriconnect@gmail.com'}</p>
               </div>
 
               <button
@@ -256,11 +258,12 @@ export default function AdminNavbar() {
                 </Link>
 
                 <button
-                  onClick={() => {
-                    triggerAlert('লগআউট করা হয়েছে।', 'info');
+                  onClick={async () => {
+                    await logout();
+                    triggerAlert('সফলভাবে লগআউট করা হয়েছে।', 'info');
                     setProfileOpen(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 text-left"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 text-left cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>লগআউট</span>

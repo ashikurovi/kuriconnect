@@ -8,12 +8,13 @@ import {
   HEALTHCARE_FACILITIES,
   POLICE_CONTACTS,
   DIRECTORY_ITEMS,
-  NEWS_ARTICLES,
-  COMMUNITY_REPORTS,
-  BLOOD_DONORS
+  NEWS_ARTICLES
 } from '@/data/kurigramData';
 import NewsCard from '@/components/NewsCard';
 import DistrictMap from '@/components/DistrictMap';
+import UpazilaBloodDonors from '@/components/UpazilaBloodDonors';
+import UpazilaReports from '@/components/UpazilaReports';
+import { serverStore } from '@/lib/serverStore';
 import {
   MapPin,
   Users,
@@ -66,8 +67,8 @@ export default async function UpazilaDetailPage({ params }: UpazilaPageProps) {
   const police = POLICE_CONTACTS.filter((p) => p.upazilaId === upazila.id);
   const directories = DIRECTORY_ITEMS.filter((d) => d.upazilaId === upazila.id);
   const news = NEWS_ARTICLES.filter((n) => n.upazilaId === upazila.id);
-  const reports = COMMUNITY_REPORTS.filter((r) => r.upazilaId === upazila.id);
-  const donors = BLOOD_DONORS.filter((d) => d.upazilaId === upazila.id);
+  const initialReports = await serverStore.getReports({ upazilaId: upazila.id });
+  const donors = await serverStore.getBloodDonors({ upazilaId: upazila.id });
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
@@ -229,34 +230,12 @@ export default async function UpazilaDetailPage({ params }: UpazilaPageProps) {
           )}
           */}
 
-          {/* Upazila Specific Public Reports */}
-          {reports.length > 0 && (
-            <section className="bg-white border border-[#e7e3db] rounded-lg p-6 shadow-2xs">
-              <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-700" />
-                  <span>উপজেলার জনসমস্যা ও উন্নয়ন অগ্রগতি</span>
-                </div>
-                <Link href="/reports" className="text-xs text-[#14532d] hover:underline">
-                  সমস্যা জানান →
-                </Link>
-              </h2>
-              <div className="space-y-3">
-                {reports.map((rep) => (
-                  <div key={rep.id} className="p-3 bg-[#faf8f5] border border-gray-200 rounded text-xs space-y-1">
-                    <div className="flex items-center justify-between font-bold text-gray-900">
-                      <span>{rep.titleBn}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                        {rep.status}
-                      </span>
-                    </div>
-                    <p className="text-gray-600">{rep.descriptionBn}</p>
-                    <p className="text-gray-400 text-[11px] pt-1">স্থান: {rep.locationDetailsBn}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          {/* Upazila Specific Public Reports (Live from API & Database) */}
+          <UpazilaReports
+            upazilaId={upazila.id}
+            upazilaNameBn={upazila.nameBn}
+            initialReports={initialReports}
+          />
         </div>
 
         {/* Right Sidebar: Services & Emergency (4/12) */}
@@ -323,42 +302,12 @@ export default async function UpazilaDetailPage({ params }: UpazilaPageProps) {
             )}
           </div>
 
-          {/* Blood Donors in this Upazila */}
-          <div className="bg-white border border-[#e7e3db] rounded-lg p-5 shadow-2xs">
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-              <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-                <HeartHandshake className="w-4 h-4 text-red-600" />
-                <span>স্থানীয় রক্তদাতা</span>
-              </h3>
-              <Link href="/blood-bank" className="text-xs text-red-700 hover:underline">
-                সকল গ্রুপ
-              </Link>
-            </div>
-            {donors.length > 0 ? (
-              <div className="space-y-2">
-                {donors.map((donor) => (
-                  <div key={donor.id} className="p-2 bg-[#faf8f5] border border-gray-200 rounded flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-red-600 text-white font-bold text-[10px] flex items-center justify-center">
-                        {donor.bloodGroup}
-                      </span>
-                      <div>
-                        <span className="font-medium text-gray-900">{donor.donorNameBn}</span>
-                        <span className="text-[10px] text-gray-500 block">{donor.areaBn}</span>
-                      </div>
-                    </div>
-                    <Link href="/blood-bank" className="text-xs text-red-700 font-semibold hover:underline">
-                      আবেদন
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-500">
-                এই উপজেলায় নতুন রক্তদাতা হিসেবে নিবন্ধন করুন।
-              </p>
-            )}
-          </div>
+          {/* Blood Donors in this Upazila (Live from API & Database) */}
+          <UpazilaBloodDonors
+            upazilaId={upazila.id}
+            upazilaNameBn={upazila.nameBn}
+            initialDonors={donors}
+          />
 
           {/* Key Educational & Market Directory Items */}
           {directories.length > 0 && (

@@ -9,8 +9,7 @@ import {
   HERITAGE_SITES,
   HEALTHCARE_FACILITIES,
   POLICE_CONTACTS,
-  DIRECTORY_ITEMS,
-  COMMUNITY_REPORTS
+  DIRECTORY_ITEMS
 } from '@/data/kurigramData';
 import {
   Search,

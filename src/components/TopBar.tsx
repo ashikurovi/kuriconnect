@@ -37,12 +37,6 @@ export default function TopBar() {
             <AlertTriangle className="w-3 h-3" />
             <span>প্রতারণা</span>
           </Link>
-          <Link
-            href="/admin"
-            className="text-slate-400 hover:text-slate-200 transition-colors border-l border-slate-800 pl-2.5"
-          >
-            অ্যাডমিন
-          </Link>
         </div>
       </div>
     </div>
